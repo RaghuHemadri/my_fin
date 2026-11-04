@@ -20,13 +20,19 @@ Tools
   (returns, volatility, ATR, RSI, MACD, moving averages, drawdown, beta).
 
 Run: uv run --script mcp/market_technicals.py
+
+The tools are async wrappers that run the blocking work in a worker thread. The MCP SDK calls a plain `def`
+tool directly on its event loop, so parallel calls from several agents would otherwise run one at a time.
 """
 
 from __future__ import annotations
 
 import math
+import threading
+import time
 from datetime import datetime, timezone
 
+import anyio
 import numpy as np
 import pandas as pd
 import yfinance as yf
@@ -34,6 +40,25 @@ from mcp.server.fastmcp import FastMCP
 from tradingview_ta import Interval, TA_Handler
 
 mcp = FastMCP("market-technicals")
+
+# Yahoo daily history is reused for a few minutes, because one run asks for the same series several times
+# (each stock's benchmark, the same stock with another horizon). The caching proxy in front of this server
+# caches whole tool results; this memo covers calls whose arguments differ but whose bars are the same.
+_HISTORY_TTL_S = 300
+_memo: dict[tuple, tuple[float, object]] = {}
+_memo_lock = threading.Lock()
+
+
+def _memoized(key: tuple, ttl_s: float, load):
+    now = time.monotonic()
+    with _memo_lock:
+        hit = _memo.get(key)
+        if hit and now - hit[0] < ttl_s:
+            return hit[1]
+    value = load()
+    with _memo_lock:
+        _memo[key] = (now, value)
+    return value
 
 _SCREENER = {
     "NSE": "india", "BSE": "india",
@@ -88,7 +113,7 @@ def _num(x) -> float | None:
 
 
 @mcp.tool()
-def technical_snapshot(symbol: str, exchange: str = "NSE", interval: str = "1d") -> dict:
+async def technical_snapshot(symbol: str, exchange: str = "NSE", interval: str = "1d") -> dict:
     """TradingView public technical rating for one stock (no TradingView account needed).
 
     symbol: 'NSE:LODHA', 'BSE:RELIANCE', 'NASDAQ:MSFT', or a bare ticker with `exchange`.
@@ -97,6 +122,10 @@ def technical_snapshot(symbol: str, exchange: str = "NSE", interval: str = "1d")
     Returns the overall summary (BUY/SELL/NEUTRAL counts), oscillator and moving-average
     ratings, and key indicator values (RSI, MACD, ADX, EMAs/SMAs, Bollinger, monthly pivots).
     """
+    return await anyio.to_thread.run_sync(_technical_snapshot, symbol, exchange, interval)
+
+
+def _technical_snapshot(symbol: str, exchange: str, interval: str) -> dict:
     ex, tk = _split(symbol, exchange)
     screener = _SCREENER.get(ex)
     if not screener:
@@ -138,14 +167,21 @@ def _ret(close: pd.Series, n: int) -> float | None:
 
 
 def _history(ticker: str, period: str) -> pd.DataFrame:
-    df = yf.Ticker(ticker).history(period=period, interval="1d", auto_adjust=True).dropna(subset=["Close"])
-    # Align by calendar date so a stock and a benchmark in different time zones still join.
-    df.index = pd.DatetimeIndex(df.index).tz_localize(None).normalize()
-    return df[~df.index.duplicated(keep="last")]
+    def load() -> pd.DataFrame:
+        df = yf.Ticker(ticker).history(period=period, interval="1d", auto_adjust=True).dropna(subset=["Close"])
+        # Align by calendar date so a stock and a benchmark in different time zones still join.
+        df.index = pd.DatetimeIndex(df.index).tz_localize(None).normalize()
+        return df[~df.index.duplicated(keep="last")]
+
+    return _memoized(("history", ticker, period), _HISTORY_TTL_S, load).copy()
+
+
+def _currency(ticker: str) -> str | None:
+    return _memoized(("currency", ticker), 86_400, lambda: yf.Ticker(ticker).fast_info.get("currency"))
 
 
 @mcp.tool()
-def price_statistics(symbol: str, period: str = "2y", benchmark: str | None = None, horizon_days: int = 20) -> dict:
+async def price_statistics(symbol: str, period: str = "2y", benchmark: str | None = None, horizon_days: int = 20) -> dict:
     """Indicators computed from Yahoo Finance daily bars for one stock.
 
     symbol: 'NSE:LODHA', 'LODHA.NS', 'BSE:RELIANCE', 'NASDAQ:MSFT' or 'MSFT'.
@@ -156,6 +192,10 @@ def price_statistics(symbol: str, period: str = "2y", benchmark: str | None = No
     SMA/EMA levels, Bollinger position, 52-week range, max drawdown, volume trend, and
     beta/correlation/relative return versus the benchmark.
     """
+    return await anyio.to_thread.run_sync(_price_statistics, symbol, period, benchmark, horizon_days)
+
+
+def _price_statistics(symbol: str, period: str, benchmark: str | None, horizon_days: int) -> dict:
     yt = to_yahoo(symbol)
     df = _history(yt, period)
     if len(df) < 30:
@@ -210,7 +250,7 @@ def price_statistics(symbol: str, period: str = "2y", benchmark: str | None = No
         },
     }
     try:
-        out["currency"] = yf.Ticker(yt).fast_info.get("currency")
+        out["currency"] = _currency(yt)
     except Exception:
         pass
 
