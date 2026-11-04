@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install test dependency
+        run: python -m pip install pyyaml
+      - name: Check shell and Python syntax
+        run: |
+          for f in mcp/*.sh; do bash -n "$f"; done
+          python -m py_compile mcp/*.py tools/*.py .github/skills/investment-debate/scripts/*.py
+      - name: Run tests
+        run: python -B -m unittest discover -s tests -v

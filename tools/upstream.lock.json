@@ -1,0 +1,8 @@
+{
+  "_comment": "Upstream commits the installed skills were built from. tools/install_skills.py --fetch checks these out into vendor/; --update-lock records new ones after you pull.",
+  "repos": {
+    "claude-trading-skills": {"url": "https://github.com/tradermonty/claude-trading-skills", "commit": "c9b84196a44a56a553293114fdae1f30bdd08c58", "license": "MIT"},
+    "finance-skills": {"url": "https://github.com/himself65/finance-skills", "commit": "a0850786e72aa23b92862f9f1635b0de506fe206", "license": "MIT"},
+    "TradingAgents": {"url": "https://github.com/TauricResearch/TradingAgents", "commit": "c4544913a14ed3df5f1ed7b9e8483270ce20682a", "license": "Apache-2.0"}
+  }
+}

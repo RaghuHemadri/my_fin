@@ -1,0 +1,13 @@
+# Normalize text to LF so shell scripts and skills work on every platform
+* text=auto eol=lf
+*.sh text eol=lf
+*.py text eol=lf
+
+# Binary assets
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.pdf binary
+*.zip binary
+*.xlsx binary

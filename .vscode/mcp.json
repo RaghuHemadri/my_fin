@@ -1,0 +1,23 @@
+{
+  "servers": {
+    "tradingmcp": {
+      "type": "stdio",
+      "command": "bash",
+      "args": ["${workspaceFolder}/mcp/launch.sh", "tradingmcp"]
+    },
+    "yahoo-finance": {
+      "type": "stdio",
+      "command": "bash",
+      "args": ["${workspaceFolder}/mcp/launch.sh", "yahoo-finance"]
+    },
+    "technicals": {
+      "type": "stdio",
+      "command": "bash",
+      "args": ["${workspaceFolder}/mcp/launch.sh", "technicals"]
+    },
+    "tapetide": {
+      "type": "http",
+      "url": "https://mcp.tapetide.com/mcp"
+    }
+  }
+}

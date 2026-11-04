@@ -1,0 +1,4 @@
+symbol,quantity,avg_cost,currency
+NASDAQ:MSFT,10,350,USD
+NSE:RELIANCE,20,1300,INR
+NSE:TCS,12,3500,INR

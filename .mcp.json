@@ -1,0 +1,27 @@
+{
+  "mcpServers": {
+    "tradingmcp": {
+      "type": "stdio",
+      "command": "bash",
+      "args": ["mcp/launch.sh", "tradingmcp"],
+      "tools": ["*"]
+    },
+    "yahoo-finance": {
+      "type": "stdio",
+      "command": "bash",
+      "args": ["mcp/launch.sh", "yahoo-finance"],
+      "tools": ["*"]
+    },
+    "technicals": {
+      "type": "stdio",
+      "command": "bash",
+      "args": ["mcp/launch.sh", "technicals"],
+      "tools": ["*"]
+    },
+    "tapetide": {
+      "type": "http",
+      "url": "https://mcp.tapetide.com/mcp",
+      "tools": ["*"]
+    }
+  }
+}

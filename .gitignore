@@ -1,0 +1,36 @@
+# Your local data. Never publish it.
+portfolio/*.csv
+!portfolio/*.example.csv
+reports/*
+!reports/.gitkeep
+memory/
+state/journal/*
+!state/journal/.gitkeep
+state/theses/*
+!state/theses/.gitkeep
+
+# Upstream clones. Re-create them with: python3 tools/install_skills.py --fetch
+vendor/
+
+# Secrets. Keep them in ~/.config/my_fin/secrets.env, outside the repo.
+.env
+*.env
+secrets*
+
+# Editor settings, except the shared MCP configuration
+.vscode/*
+!.vscode/mcp.json
+
+# Python and tooling
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp

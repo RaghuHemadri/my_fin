@@ -1,0 +1,834 @@
+{
+  "_comment": "One entry per upstream skill. tools/install_skills.py copies each skill into .github/skills/ and injects an adapter block built from these fields. Tool names are canonical TradingView MCP names that .github/tradingview-adapter.md maps to the configured servers. status: native | adapted | partial | user-files | opt-in. net_scripts (optional) overrides the automatic network-script scan when it is a false positive.",
+  "skills": [
+    {
+      "name": "backtest-expert",
+      "repo": "claude-trading-skills",
+      "status": "native",
+      "upstream": "strategy parameters and OHLCV you provide",
+      "use": "When it needs price history, use `get_ohlcv` (up to 5000 bars).",
+      "gaps": ""
+    },
+    {
+      "name": "breadth-chart-analyst",
+      "repo": "claude-trading-skills",
+      "status": "user-files",
+      "upstream": "breadth chart images, plus TraderMonty's public breadth CSV",
+      "use": "Analyze the chart images the user attaches (TradingView screenshots work). For numbers, use breadth series found with `search_symbols` (for example % of S&P 500 stocks above their 200-day MA) and `get_ohlcv`, where the configured servers carry them.",
+      "gaps": "TraderMonty's breadth CSV is not used."
+    },
+    {
+      "name": "breakout-trade-planner",
+      "repo": "claude-trading-skills",
+      "status": "native",
+      "upstream": "VCP screener output and account size",
+      "use": "Take candidates from the adapted `vcp-screener` output; prices and ATR from `get_symbol_data` or `get_technicals_rating`.",
+      "gaps": "Order templates are text for human review only. Never submit them to Alpaca or any broker.",
+      "net_scripts": []
+    },
+    {
+      "name": "canslim-screener",
+      "repo": "claude-trading-skills",
+      "status": "adapted",
+      "upstream": "FMP API and FinViz",
+      "use": "Build the universe with `run_screener` (market `america`, or `india`) using EPS and revenue growth, ROE, distance from 52-week high, performance and volume columns. Score each CANSLIM factor per the references with `get_financial_history` (`fq`, `fy`), `get_symbol_data`, `get_forecasts`, and `get_ohlcv` on `SP:SPX` for market direction.",
+      "gaps": "13F-based institutional sponsorship (I) is not available. Use institutional-holder data if a server provides it (for example `yahoo-finance` `get_holder_info`); otherwise mark I as unscored."
+    },
+    {
+      "name": "contrarian-setup-gate",
+      "repo": "claude-trading-skills",
+      "status": "native",
+      "upstream": "reports from cot-contrarian-detector, news-reaction-failure-analyzer and technical-analyst",
+      "use": "No direct data access; it combines the upstream skill reports.",
+      "gaps": ""
+    },
+    {
+      "name": "cot-contrarian-detector",
+      "repo": "claude-trading-skills",
+      "status": "partial",
+      "upstream": "CFTC Commitments of Traders data through the FMP API",
+      "use": "Check whether the configured servers expose COT series (`search_symbols` with 'COT' plus the market name). If they do, read them with `get_ohlcv`; futures prices come from `get_ohlcv` on the continuous contract.",
+      "gaps": "If no COT series is available, this skill cannot score crowding. Say so and stop."
+    },
+    {
+      "name": "crypto-regime-analyzer",
+      "repo": "claude-trading-skills",
+      "status": "partial",
+      "upstream": "CoinGecko and Binance funding APIs",
+      "use": "Prices and market caps from crypto symbols (for example `CRYPTOCAP:TOTAL`, `CRYPTOCAP:BTC.D`, `BINANCE:BTCUSDT`, or Yahoo `BTC-USD`) with `get_ohlcv` and `get_symbol_data_batch`. Look for funding-rate or open-interest data with `get_screener_columns` (market `crypto`). Pass the snapshot to the analyzer with `--input-json`.",
+      "gaps": "Funding rates may not be available; score that component as missing."
+    },
+    {
+      "name": "data-quality-checker",
+      "repo": "claude-trading-skills",
+      "status": "native",
+      "upstream": "a Markdown document",
+      "use": "Check figures against the MCP data servers when a claim needs verifying.",
+      "gaps": ""
+    },
+    {
+      "name": "dividend-growth-pullback-screener",
+      "repo": "claude-trading-skills",
+      "status": "adapted",
+      "upstream": "FMP API and FinViz",
+      "use": "`run_screener` for dividend yield of at least 1.5%, dividend growth and RSI(14) of 40 or below, with quality filters; `get_dividends_calendar` and `get_financial_history` (`fy`) for dividend and earnings growth; `get_technicals_rating` for RSI.",
+      "gaps": "Multi-year dividend CAGR needs per-name history; label it as estimated when the history is short."
+    },
+    {
+      "name": "downtrend-duration-analyzer",
+      "repo": "claude-trading-skills",
+      "status": "adapted",
+      "upstream": "FMP historical prices",
+      "use": "Daily bars from `get_ohlcv` (up to 5000) for each symbol or sector ETF; prepare the data file the script reads with `--input`.",
+      "gaps": ""
+    },
+    {
+      "name": "drawdown-circuit-breaker",
+      "repo": "claude-trading-skills",
+      "status": "native",
+      "upstream": "trader-memory-core state in `state/` and your account size",
+      "use": "No market data needed.",
+      "gaps": ""
+    },
+    {
+      "name": "dual-axis-skill-reviewer",
+      "repo": "claude-trading-skills",
+      "status": "native",
+      "upstream": "a skill source tree",
+      "use": "Skills live in `.github/skills/`. For the LLM axis, write the review yourself and pass it with `--llm-review-json`. Do not call the `claude` CLI.",
+      "gaps": "",
+      "net_scripts": []
+    },
+    {
+      "name": "earnings-calendar",
+      "repo": "claude-trading-skills",
+      "status": "adapted",
+      "upstream": "FMP earnings calendar API",
+      "use": "For a market-wide view, use `run_screener` filtered on the next-earnings-date column (find it with `get_screener_columns`, search 'earnings') and market cap. For specific symbols, use `get_earnings_calendar`.",
+      "gaps": ""
+    },
+    {
+      "name": "earnings-trade-analyzer",
+      "repo": "claude-trading-skills",
+      "status": "adapted",
+      "upstream": "FMP API",
+      "use": "Recent reporters from `run_screener` (last-earnings-date column). Gap, pre-earnings trend, volume trend and MA50/MA200 position from `get_ohlcv` daily bars and `get_symbol_data`.",
+      "gaps": ""
+    },
+    {
+      "name": "economic-calendar-fetcher",
+      "repo": "claude-trading-skills",
+      "status": "adapted",
+      "upstream": "FMP economic calendar API",
+      "use": "`get_economic_calendar` with `countries` (for example `US,IN`), the date window and `min_importance`.",
+      "gaps": ""
+    },
+    {
+      "name": "fxmacrodata-calendar",
+      "repo": "claude-trading-skills",
+      "status": "adapted",
+      "upstream": "FXMacroData API",
+      "use": "`get_economic_calendar` filtered by `currencies` and importance; `get_economic_data` for the actual series.",
+      "gaps": ""
+    },
+    {
+      "name": "edge-candidate-agent",
+      "repo": "claude-trading-skills",
+      "status": "adapted",
+      "upstream": "end-of-day observations, optionally from FMP",
+      "use": "Build the observations from `run_screener` (movers, volume, new highs) and `get_ohlcv`.",
+      "gaps": ""
+    },
+    {
+      "name": "edge-concept-synthesizer",
+      "repo": "claude-trading-skills",
+      "status": "native",
+      "upstream": "edge tickets and hints from the other edge skills",
+      "use": "No direct data access.",
+      "gaps": ""
+    },
+    {
+      "name": "edge-hint-extractor",
+      "repo": "claude-trading-skills",
+      "status": "native",
+      "upstream": "market summary and anomaly JSON from earlier steps",
+      "use": "Build the inputs from outputs based on the MCP data servers. You perform the optional LLM ideation step yourself.",
+      "gaps": ""
+    },
+    {
+      "name": "edge-pipeline-orchestrator",
+      "repo": "claude-trading-skills",
+      "status": "native",
+      "upstream": "outputs of the edge-* skills",
+      "use": "Runs the edge skills in order. Each step uses its own adapter.",
+      "gaps": ""
+    },
+    {
+      "name": "edge-signal-aggregator",
+      "repo": "claude-trading-skills",
+      "status": "native",
+      "upstream": "outputs of edge-candidate-agent, theme-detector, sector-analyst and institutional-flow-tracker",
+      "use": "No direct data access.",
+      "gaps": ""
+    },
+    {
+      "name": "edge-strategy-designer",
+      "repo": "claude-trading-skills",
+      "status": "native",
+      "upstream": "edge concept YAML",
+      "use": "No direct data access.",
+      "gaps": ""
+    },
+    {
+      "name": "edge-strategy-reviewer",
+      "repo": "claude-trading-skills",
+      "status": "native",
+      "upstream": "strategy draft YAML",
+      "use": "No direct data access.",
+      "gaps": ""
+    },
+    {
+      "name": "exposure-coach",
+      "repo": "claude-trading-skills",
+      "status": "native",
+      "upstream": "breadth, uptrend and top-risk reports",
+      "use": "Combines the adapted market-breadth-analyzer, uptrend-analyzer and market-top-detector outputs.",
+      "gaps": "Inherits the approximations of those upstream reports."
+    },
+    {
+      "name": "finviz-screener",
+      "repo": "claude-trading-skills",
+      "status": "adapted",
+      "upstream": "FinViz screener URLs opened in a browser",
+      "use": "Translate the request into `run_screener` filters (market `america`, or `india` for Indian stocks) and return the rows. Do not open FinViz.",
+      "gaps": "A FinViz filter with no screener equivalent is reported as unsupported."
+    },
+    {
+      "name": "ftd-detector",
+      "repo": "claude-trading-skills",
+      "status": "adapted",
+      "upstream": "FMP index OHLCV",
+      "use": "Daily bars from `get_ohlcv` for `SP:SPX` and `NASDAQ:IXIC` (or `AMEX:SPY`, `NASDAQ:QQQ`); apply the skill's rally-attempt and follow-through rules.",
+      "gaps": ""
+    },
+    {
+      "name": "futures-position-sizer",
+      "repo": "claude-trading-skills",
+      "status": "native",
+      "upstream": "entry, stop, account size and its contract table",
+      "use": "Prices from `get_symbol_data` when needed.",
+      "gaps": ""
+    },
+    {
+      "name": "ibd-distribution-day-monitor",
+      "repo": "claude-trading-skills",
+      "status": "adapted",
+      "upstream": "FMP OHLCV for QQQ and SPY",
+      "use": "Daily bars from `get_ohlcv` for `NASDAQ:QQQ` and `AMEX:SPY`; apply the skill's distribution-day rules.",
+      "gaps": ""
+    },
+    {
+      "name": "institutional-flow-tracker",
+      "repo": "claude-trading-skills",
+      "status": "partial",
+      "upstream": "13F filings through the FMP API",
+      "use": "Ownership columns if `get_screener_columns` lists any (search 'institution'); filings with `get_documents`.",
+      "gaps": "Quarter-over-quarter 13F holdings and fund flows are not available; report them as a gap. A current institutional-holder snapshot may be (for example `yahoo-finance` `get_holder_info`, mainly US listings)."
+    },
+    {
+      "name": "kanchi-dividend-review-monitor",
+      "repo": "claude-trading-skills",
+      "status": "adapted",
+      "upstream": "holdings snapshot and the FMP API",
+      "use": "Holdings from `portfolio/holdings.csv`; dividends from `get_dividends_calendar`; fundamentals from `get_financials` and `get_financial_history`.",
+      "gaps": ""
+    },
+    {
+      "name": "kanchi-dividend-sop",
+      "repo": "claude-trading-skills",
+      "status": "adapted",
+      "upstream": "FMP API and a public CSV universe",
+      "use": "Universe from `run_screener` (yield, payout, growth columns); per-name data from `get_financial_history` and `get_dividends_calendar`. Local scripts accept `--input` and `--events-json`.",
+      "gaps": ""
+    },
+    {
+      "name": "kanchi-dividend-us-tax-accounting",
+      "repo": "claude-trading-skills",
+      "status": "native",
+      "upstream": "dividend records and US tax forms",
+      "use": "No market data needed.",
+      "gaps": "Covers US tax rules only. Say so for Indian-resident or INR accounts."
+    },
+    {
+      "name": "macro-regime-detector",
+      "repo": "claude-trading-skills",
+      "status": "adapted",
+      "upstream": "yfinance and FMP",
+      "use": "Weekly bars from `get_ohlcv` for the cross-asset ETFs and indices the skill names (resolve with `search_symbols`, for example `AMEX:RSP`, `AMEX:SPY`, `AMEX:HYG`, `AMEX:LQD`, `AMEX:IWM`). Yields from `TVC:US10Y` and `TVC:US02Y`, or from `get_economic_data`.",
+      "gaps": ""
+    },
+    {
+      "name": "manifoldbt-backtester",
+      "repo": "claude-trading-skills",
+      "status": "user-files",
+      "upstream": "the manifoldbt engine and a local OHLCV file",
+      "use": "Install `manifoldbt` yourself. Build the OHLCV file from `get_ohlcv` bars.",
+      "gaps": ""
+    },
+    {
+      "name": "market-breadth-analyzer",
+      "repo": "claude-trading-skills",
+      "status": "partial",
+      "upstream": "TraderMonty's public breadth CSV",
+      "use": "Approximate it with breadth series found with `search_symbols` (% of S&P 500 stocks above their 50- and 200-day MA, NYSE advance/decline) and `get_ohlcv`, and with screener counts of stocks above SMA50 and SMA200.",
+      "gaps": "TraderMonty's composite data is not used. Label the scores as approximations."
+    },
+    {
+      "name": "market-environment-analysis",
+      "repo": "claude-trading-skills",
+      "status": "adapted",
+      "upstream": "web search",
+      "use": "`get_symbol_data_batch` for indices, FX, yields and commodities; `get_economic_calendar`; `get_news` on index and FX symbols. `scripts/market_utils.py` is local.",
+      "gaps": ""
+    },
+    {
+      "name": "market-news-analyst",
+      "repo": "claude-trading-skills",
+      "status": "adapted",
+      "upstream": "web search and fetch",
+      "use": "`get_news` and `get_news_story` on holdings and on index, FX and commodity symbols (`NSE:NIFTY`, `SP:SPX`, `FX_IDC:USDINR`, `TVC:UKOIL`); `get_economic_calendar` for macro events.",
+      "gaps": "No configured source guarantees coverage of RBI, SEBI, NSE, BSE or Government of India circulars."
+    },
+    {
+      "name": "market-top-detector",
+      "repo": "claude-trading-skills",
+      "status": "partial",
+      "upstream": "public breadth CSV, FMP and yfinance",
+      "use": "Distribution days from `get_ohlcv` (`SP:SPX`, `NASDAQ:IXIC`); leading-stock deterioration from `run_screener`; defensive rotation from sector ETFs with `get_ohlcv`.",
+      "gaps": "TraderMonty breadth data is not used. Label the approximations."
+    },
+    {
+      "name": "mt5-robot-tester",
+      "repo": "claude-trading-skills",
+      "status": "user-files",
+      "upstream": "a local MetaTrader 5 terminal, Expert Advisor files and broker tick data",
+      "use": "Nothing from the MCP servers. It runs on your MT5 installation.",
+      "gaps": ""
+    },
+    {
+      "name": "news-reaction-failure-analyzer",
+      "repo": "claude-trading-skills",
+      "status": "adapted",
+      "upstream": "FMP prices and web search",
+      "use": "News from `get_news` and `get_news_story`; price reaction from `get_ohlcv`. The script accepts `--events-json` and `--detector-json`.",
+      "gaps": ""
+    },
+    {
+      "name": "options-strategy-advisor",
+      "repo": "claude-trading-skills",
+      "status": "partial",
+      "upstream": "FMP price and volatility data",
+      "use": "Spot price and historical volatility from `get_symbol_data` and `get_ohlcv`. The Black-Scholes math is local.",
+      "gaps": "Use option chains if a server provides them (for example `yahoo-finance` `get_option_chain`, US listings); Greeks are not provided, so compute them locally with Black-Scholes. Otherwise ask the user for premiums and IV, or label values as theoretical."
+    },
+    {
+      "name": "pair-trade-screener",
+      "repo": "claude-trading-skills",
+      "status": "adapted",
+      "upstream": "FMP price history",
+      "use": "Peers from `run_screener`; bars from `get_ohlcv` on the same interval for each candidate. Compute correlation, hedge ratio and spread z-score from those bars.",
+      "gaps": ""
+    },
+    {
+      "name": "parabolic-short-trade-planner",
+      "repo": "claude-trading-skills",
+      "status": "partial",
+      "upstream": "FMP and Alpaca (short inventory, live 5-minute bars)",
+      "use": "Screen with `run_screener` (large multi-day gains, relative volume); intraday bars from `get_ohlcv` (interval `5`).",
+      "gaps": "Short-borrow availability is not available. Never send orders."
+    },
+    {
+      "name": "pead-screener",
+      "repo": "claude-trading-skills",
+      "status": "adapted",
+      "upstream": "FMP API",
+      "use": "Post-earnings gap-ups from `run_screener` and weekly bars from `get_ohlcv`; report dates from `get_earnings_calendar`. The script accepts `--candidates-json`.",
+      "gaps": ""
+    },
+    {
+      "name": "portfolio-manager",
+      "repo": "claude-trading-skills",
+      "status": "adapted",
+      "upstream": "the Alpaca broker MCP server",
+      "use": "Holdings from `portfolio/holdings.csv`, prices from `get_symbol_data_batch`. `scripts/review_csv.py --input <csv> --as-of <timestamp with time zone, e.g. 2026-10-29T16:00:00-04:00>` reviews a CSV with columns `symbol,asset_type,quantity,direction,price,currency` (`asset_type` is `equity`, `direction` is `LONG` or `SHORT`).",
+      "gaps": "`review_csv.py` accepts USD equities only. Review INR holdings with the method by hand, or convert them at a dated FX rate and say so."
+    },
+    {
+      "name": "position-sizer",
+      "repo": "claude-trading-skills",
+      "status": "native",
+      "upstream": "entry, stop and account size",
+      "use": "Prices and ATR from the MCP servers. It prints `$` for any currency, so report amounts in the instrument's currency.",
+      "gaps": ""
+    },
+    {
+      "name": "pre-trade-discipline-gate",
+      "repo": "claude-trading-skills",
+      "status": "native",
+      "upstream": "checklist, exposure decision, circuit-breaker decision and thesis record",
+      "use": "No market data needed.",
+      "gaps": ""
+    },
+    {
+      "name": "residual-edge-analyzer",
+      "repo": "claude-trading-skills",
+      "status": "native",
+      "upstream": "strategy and baseline return series",
+      "use": "Build baseline returns from `get_ohlcv` when needed.",
+      "gaps": ""
+    },
+    {
+      "name": "scenario-analyzer",
+      "repo": "claude-trading-skills",
+      "status": "adapted",
+      "upstream": "web search",
+      "use": "Related news from `get_news` and `get_news_story` on the affected companies, sector ETFs, indices and FX. Delegate to the `scenario-analyst` and `strategy-reviewer` custom agents.",
+      "gaps": ""
+    },
+    {
+      "name": "sector-analyst",
+      "repo": "claude-trading-skills",
+      "status": "partial",
+      "upstream": "chart images and TraderMonty's sector uptrend CSV",
+      "use": "Sector ETFs (`AMEX:XLK`, `AMEX:XLF` and so on) or NSE sector indices from `get_ohlcv` and `get_symbol_data_batch`; charts the user attaches.",
+      "gaps": "TraderMonty's sector uptrend CSV is not used."
+    },
+    {
+      "name": "signal-postmortem",
+      "repo": "claude-trading-skills",
+      "status": "adapted",
+      "upstream": "FMP prices",
+      "use": "Outcome prices from `get_ohlcv`.",
+      "gaps": ""
+    },
+    {
+      "name": "skill-designer",
+      "repo": "claude-trading-skills",
+      "status": "native",
+      "upstream": "an idea specification",
+      "use": "Create new skills under `.github/skills/<name>/` and keep the workspace data rules in `.github/tradingview-adapter.md`.",
+      "gaps": ""
+    },
+    {
+      "name": "skill-idea-miner",
+      "repo": "claude-trading-skills",
+      "status": "partial",
+      "upstream": "Claude Code session logs in `~/.claude/projects`",
+      "use": "Give it exported chat transcripts instead.",
+      "gaps": "Copilot sessions are not stored in the Claude Code log format."
+    },
+    {
+      "name": "skill-integration-tester",
+      "repo": "claude-trading-skills",
+      "status": "native",
+      "upstream": "workflow definitions and skill outputs",
+      "use": "Workflows are in `workflows/*.yaml` and the rules are in `.github/copilot-instructions.md` (not `CLAUDE.md`).",
+      "gaps": ""
+    },
+    {
+      "name": "stanley-druckenmiller-investment",
+      "repo": "claude-trading-skills",
+      "status": "native",
+      "upstream": "outputs of eight upstream skills",
+      "use": "Combines the adapted upstream reports.",
+      "gaps": "Inherits the gaps of those reports."
+    },
+    {
+      "name": "stockbee-20pct-study",
+      "repo": "claude-trading-skills",
+      "status": "adapted",
+      "upstream": "FMP API",
+      "use": "Daily movers from `run_screener` (change of at least +20% or -20%); bars from `get_ohlcv`; news from `get_news`. The script accepts `--prices-json`, `--news-json` and `--events-json`.",
+      "gaps": ""
+    },
+    {
+      "name": "stockbee-episodic-pivot-analyzer",
+      "repo": "claude-trading-skills",
+      "status": "adapted",
+      "upstream": "catalyst event JSON and FMP",
+      "use": "Catalysts from `get_news`, `get_documents` and `get_earnings_calendar`; bars from `get_ohlcv`. The script accepts `--prices-json`, `--events-json`, `--earnings-json` and `--momentum-json`.",
+      "gaps": ""
+    },
+    {
+      "name": "stockbee-exhaustion-hammer-screener",
+      "repo": "claude-trading-skills",
+      "status": "adapted",
+      "upstream": "FMP API",
+      "use": "Universe from `run_screener`; bars from `get_ohlcv`. The script accepts `--prices-json`, `--profiles-json` and `--universe-file`.",
+      "gaps": ""
+    },
+    {
+      "name": "stockbee-momentum-burst-screener",
+      "repo": "claude-trading-skills",
+      "status": "adapted",
+      "upstream": "FMP API",
+      "use": "Candidates from `run_screener` (change of at least 4%, relative volume); bars from `get_ohlcv`. The script accepts `--prices-json` and `--universe-file`.",
+      "gaps": ""
+    },
+    {
+      "name": "stockbee-setup-fluency-trainer",
+      "repo": "claude-trading-skills",
+      "status": "adapted",
+      "upstream": "price JSON, optionally from FMP",
+      "use": "Bars from `get_ohlcv`. The script accepts `--prices-json` and `--screener-json`.",
+      "gaps": ""
+    },
+    {
+      "name": "strategy-pivot-designer",
+      "repo": "claude-trading-skills",
+      "status": "native",
+      "upstream": "backtest iteration history",
+      "use": "No market data needed.",
+      "gaps": ""
+    },
+    {
+      "name": "technical-analyst",
+      "repo": "claude-trading-skills",
+      "status": "adapted",
+      "upstream": "weekly chart images, optionally FMP",
+      "use": "Chart images the user attaches, or weekly bars from `get_ohlcv` (interval `1W`) and `get_technicals_rating` (`1W`).",
+      "gaps": ""
+    },
+    {
+      "name": "theme-detector",
+      "repo": "claude-trading-skills",
+      "status": "partial",
+      "upstream": "FMP, FinViz, yfinance and uptrend CSV data",
+      "use": "Industry and sector performance from `run_screener`; theme ETFs and leaders from `get_ohlcv`.",
+      "gaps": "FinViz industry tables and TraderMonty uptrend data are not used."
+    },
+    {
+      "name": "trade-hypothesis-ideator",
+      "repo": "claude-trading-skills",
+      "status": "native",
+      "upstream": "market data bundle and journal snippets",
+      "use": "Build the market bundle from MCP-server outputs.",
+      "gaps": ""
+    },
+    {
+      "name": "trade-performance-coach",
+      "repo": "claude-trading-skills",
+      "status": "native",
+      "upstream": "closed theses, postmortems and journal",
+      "use": "Trade records from `state/` and `portfolio/transactions.csv`.",
+      "gaps": ""
+    },
+    {
+      "name": "trader-memory-core",
+      "repo": "claude-trading-skills",
+      "status": "adapted",
+      "upstream": "local thesis state, with FMP for prices",
+      "use": "Theses in `state/theses/`, journal in `state/journal/`. Mark-to-market prices come from `get_symbol_data_batch` (skip `fmp_price_adapter.py`).",
+      "gaps": ""
+    },
+    {
+      "name": "trading-skills-navigator",
+      "repo": "claude-trading-skills",
+      "status": "native",
+      "upstream": "`skills-index.yaml` and `workflows/` at the project root",
+      "use": "Treat any `api_profile` (fmp-required, alpaca and so on) as served by the workspace MCP servers through these adapters, except skills marked opt-in or partial. Run workflows with the `trading-workflow` skill.",
+      "gaps": "",
+      "net_scripts": []
+    },
+    {
+      "name": "uptrend-analyzer",
+      "repo": "claude-trading-skills",
+      "status": "partial",
+      "upstream": "TraderMonty's uptrend-ratio CSV",
+      "use": "Approximate the uptrend ratio per sector with `run_screener` counts (`totalCount`) of stocks above SMA50 and SMA200, divided by the sector total.",
+      "gaps": "TraderMonty's dataset is not used. Label the results as approximations."
+    },
+    {
+      "name": "us-market-bubble-detector",
+      "repo": "claude-trading-skills",
+      "status": "partial",
+      "upstream": "bubble indicator values you provide",
+      "use": "Use the MCP servers where they have the data: VIX (`CBOE:VIX`, Yahoo `^VIX`), index valuation from `get_symbol_data`, put/call series if `search_symbols` finds them.",
+      "gaps": "Margin debt, IPO counts and survey sentiment are not available. Ask the user or mark them as missing."
+    },
+    {
+      "name": "us-stock-analysis",
+      "repo": "claude-trading-skills",
+      "status": "adapted",
+      "upstream": "data you provide",
+      "use": "Fundamentals from `get_financials`, `get_financial_history` and `get_forecasts`; technicals from `get_technicals_rating` and `get_ohlcv`; news from `get_news`.",
+      "gaps": ""
+    },
+    {
+      "name": "value-dividend-screener",
+      "repo": "claude-trading-skills",
+      "status": "adapted",
+      "upstream": "FMP API and FinViz",
+      "use": "`run_screener` with P/E below 20, P/B below 2, dividend yield of at least 3% and the skill's other filters; growth from `get_financial_history`.",
+      "gaps": ""
+    },
+    {
+      "name": "vcp-screener",
+      "repo": "claude-trading-skills",
+      "status": "adapted",
+      "upstream": "FMP OHLCV",
+      "use": "Universe: S&P 500 members from `run_screener` (index filter) with trend-template filters (price above SMA50 above SMA200, near the 52-week high). Analyze contractions from `get_ohlcv` daily bars.",
+      "gaps": ""
+    },
+    {
+      "name": "weekly-performance-digest",
+      "repo": "claude-trading-skills",
+      "status": "native",
+      "upstream": "closed thesis records",
+      "use": "No market data needed.",
+      "gaps": ""
+    },
+    {
+      "name": "us-undervalued-growth-screener",
+      "repo": "claude-trading-skills",
+      "status": "adapted",
+      "upstream": "FMP, SEC EDGAR, company IR sites and official macro sources",
+      "use": "Screening from `run_screener`; 10-K, 10-Q and 8-K filings and IR material from `get_documents` and `get_document_view`; macro data from `get_economic_data`. The pipeline supports `--offline` and `--input`.",
+      "gaps": ""
+    },
+    {
+      "name": "finance-sentiment",
+      "repo": "finance-skills",
+      "path": "plugins/data-providers/skills/finance-sentiment",
+      "status": "opt-in",
+      "upstream": "the Adanos Finance API (Reddit, X, news and Polymarket sentiment; API key)",
+      "use": "By default, use the sentiment method of `ta-sentiment-analyst` (news flow, analyst consensus, technical consensus).",
+      "gaps": ""
+    },
+    {
+      "name": "fintel-data",
+      "repo": "finance-skills",
+      "path": "plugins/data-providers/skills/fintel-data",
+      "status": "opt-in",
+      "upstream": "the Fintel API or MCP server (short interest, ownership, insiders; paid key)",
+      "use": "Without opt-in, short-interest data is not available; ownership snapshots may come from `yahoo-finance` `get_holder_info`.",
+      "gaps": ""
+    },
+    {
+      "name": "hormuz-strait",
+      "repo": "finance-skills",
+      "path": "plugins/data-providers/skills/hormuz-strait",
+      "status": "opt-in",
+      "upstream": "the Hormuz Strait Monitor web dashboard",
+      "use": "By default, use Brent and WTI prices (`TVC:UKOIL`, `TVC:USOIL`) and `get_news` on them.",
+      "gaps": ""
+    },
+    {
+      "name": "hyperliquid-reader",
+      "repo": "finance-skills",
+      "path": "plugins/data-providers/skills/hyperliquid-reader",
+      "status": "opt-in",
+      "upstream": "the Hyperliquid API through opencli",
+      "use": "By default, use crypto prices from the MCP servers.",
+      "gaps": ""
+    },
+    {
+      "name": "tradingview-mcp",
+      "repo": "finance-skills",
+      "path": "plugins/data-providers/skills/tradingview-mcp",
+      "status": "adapted",
+      "upstream": "the community tradingview-mcp server (atilaahmettaner)",
+      "use": "This workspace runs that server as `tradingmcp` (pinned PyPI release `tradingview-mcp-server`), so its tools work as described, subject to `.github/copilot-instructions.md` (for example, its technical tools do not accept NSE or BSE; use `technicals`). With the official TradingView MCP instead, map `stock_prices` -> `get_symbol_data_batch`, `coin_analysis` and `multi_timeframe_analysis` -> `get_technicals_rating`, the scans -> `run_screener`, and `financial_news` -> `get_news`.",
+      "gaps": "With the official TradingView MCP, option chains and the built-in backtests are not available; use `backtest-expert` or `manifoldbt-backtester` for backtests."
+    },
+    {
+      "name": "tradingview-reader",
+      "repo": "finance-skills",
+      "path": "plugins/data-providers/skills/tradingview-reader",
+      "status": "opt-in",
+      "upstream": "the TradingView desktop app (macOS) through opencli and CDP",
+      "use": "By default, the official MCP covers quotes, screener, news, watchlists and alerts.",
+      "gaps": "Option Greeks and chart screenshots are available only through this opt-in path."
+    },
+    {
+      "name": "company-valuation",
+      "repo": "finance-skills",
+      "path": "plugins/market-analysis/skills/company-valuation",
+      "status": "adapted",
+      "upstream": "yfinance",
+      "use": "`get_financials`, `get_financial_history`, `get_forecasts` and `get_symbol_data`; peers from `run_screener`. Do not run the yfinance code.",
+      "gaps": ""
+    },
+    {
+      "name": "earnings-preview",
+      "repo": "finance-skills",
+      "path": "plugins/market-analysis/skills/earnings-preview",
+      "status": "adapted",
+      "upstream": "yfinance",
+      "use": "`get_earnings_calendar`, `get_forecasts`, `get_financial_history` (`fq`) and `get_ohlcv`.",
+      "gaps": "Whisper numbers and the full beat/miss history may be unavailable."
+    },
+    {
+      "name": "earnings-recap",
+      "repo": "finance-skills",
+      "path": "plugins/market-analysis/skills/earnings-recap",
+      "status": "adapted",
+      "upstream": "yfinance",
+      "use": "`get_financial_history` (`fq`), `get_earnings_calendar`, `get_documents` then `get_document_view` (results, transcript), and `get_ohlcv` for the price reaction.",
+      "gaps": ""
+    },
+    {
+      "name": "estimate-analysis",
+      "repo": "finance-skills",
+      "path": "plugins/market-analysis/skills/estimate-analysis",
+      "status": "partial",
+      "upstream": "yfinance",
+      "use": "`get_forecasts` (consensus EPS and revenue, ranges, price targets, rating split).",
+      "gaps": "The 7/30/60/90-day revision history is generally not available; `yahoo-finance` `get_recommendations` (`upgrades_downgrades`) gives rating changes for US names. Compare with earlier saved reports if any exist."
+    },
+    {
+      "name": "etf-premium",
+      "repo": "finance-skills",
+      "path": "plugins/market-analysis/skills/etf-premium",
+      "status": "partial",
+      "upstream": "yfinance",
+      "use": "Price from `get_symbol_data`; NAV and premium/discount columns if `get_screener_columns` lists them (search 'nav').",
+      "gaps": "Intraday NAV and holdings-based decomposition may be unavailable."
+    },
+    {
+      "name": "options-payoff",
+      "repo": "finance-skills",
+      "path": "plugins/market-analysis/skills/options-payoff",
+      "status": "adapted",
+      "upstream": "yfinance (spot and chains)",
+      "use": "Spot price from `get_symbol_data`. The payoff chart and Black-Scholes values are computed locally; take premiums and IV from the user.",
+      "gaps": "Option chains come from a server that provides them (for example `yahoo-finance` `get_option_chain`, US listings); otherwise take premiums and IV from the user."
+    },
+    {
+      "name": "saas-valuation-compression",
+      "repo": "finance-skills",
+      "path": "plugins/market-analysis/skills/saas-valuation-compression",
+      "status": "partial",
+      "upstream": "web research on private funding rounds",
+      "use": "Public SaaS multiples (EV/revenue and growth) from `run_screener`. Take private round data from the user.",
+      "gaps": "Private funding-round data is not in the MCP servers. Web search is opt-in only."
+    },
+    {
+      "name": "sepa-strategy",
+      "repo": "finance-skills",
+      "path": "plugins/market-analysis/skills/sepa-strategy",
+      "status": "adapted",
+      "upstream": "yfinance",
+      "use": "`get_ohlcv` (daily and weekly) for stage analysis, the trend template and VCP; `get_financial_history` for EPS and sales acceleration; `get_ohlcv` on `SP:SPX` or `NSE:NIFTY` for the market environment.",
+      "gaps": ""
+    },
+    {
+      "name": "stock-correlation",
+      "repo": "finance-skills",
+      "path": "plugins/market-analysis/skills/stock-correlation",
+      "status": "adapted",
+      "upstream": "yfinance",
+      "use": "`get_ohlcv` for each symbol over the same interval and window. Compute returns only from those bars.",
+      "gaps": ""
+    },
+    {
+      "name": "stock-liquidity",
+      "repo": "finance-skills",
+      "path": "plugins/market-analysis/skills/stock-liquidity",
+      "status": "partial",
+      "upstream": "yfinance",
+      "use": "Volume, average volume, dollar volume and turnover from `get_ohlcv` and `get_symbol_data`; bid/ask columns if `get_screener_columns` lists them.",
+      "gaps": "Order-book depth is not available. Options volume and open interest come from an option-chain tool if a server provides one."
+    },
+    {
+      "name": "yfinance-data",
+      "repo": "finance-skills",
+      "path": "plugins/market-analysis/skills/yfinance-data",
+      "status": "opt-in",
+      "upstream": "yfinance (Yahoo Finance)",
+      "use": "The `yahoo-finance` MCP server covers Yahoo data for default work; this skill runs the yfinance library directly, so it stays opt-in.",
+      "gaps": ""
+    },
+    {
+      "name": "skill-creator",
+      "repo": "finance-skills",
+      "path": "plugins/skill-creator/skills/skill-creator",
+      "status": "native",
+      "upstream": "skill sources",
+      "use": "Create skills in `.github/skills/` and keep the workspace data rules in `.github/tradingview-adapter.md` in new skills.",
+      "gaps": ""
+    },
+    {
+      "name": "discord-reader",
+      "repo": "finance-skills",
+      "path": "plugins/social-readers/skills/discord-reader",
+      "status": "opt-in",
+      "upstream": "the Discord desktop app through opencli",
+      "use": "",
+      "gaps": ""
+    },
+    {
+      "name": "linkedin-reader",
+      "repo": "finance-skills",
+      "path": "plugins/social-readers/skills/linkedin-reader",
+      "status": "opt-in",
+      "upstream": "LinkedIn through opencli",
+      "use": "",
+      "gaps": ""
+    },
+    {
+      "name": "opencli-reader",
+      "repo": "finance-skills",
+      "path": "plugins/social-readers/skills/opencli-reader",
+      "status": "opt-in",
+      "upstream": "opencli access to Yahoo Finance, Bloomberg, Reuters, Reddit and 100+ other sites",
+      "use": "",
+      "gaps": ""
+    },
+    {
+      "name": "telegram-reader",
+      "repo": "finance-skills",
+      "path": "plugins/social-readers/skills/telegram-reader",
+      "status": "opt-in",
+      "upstream": "Telegram through the tdl CLI",
+      "use": "",
+      "gaps": ""
+    },
+    {
+      "name": "twitter-reader",
+      "repo": "finance-skills",
+      "path": "plugins/social-readers/skills/twitter-reader",
+      "status": "opt-in",
+      "upstream": "Twitter/X through opencli",
+      "use": "",
+      "gaps": ""
+    },
+    {
+      "name": "yc-reader",
+      "repo": "finance-skills",
+      "path": "plugins/social-readers/skills/yc-reader",
+      "status": "opt-in",
+      "upstream": "the yc-oss public Y Combinator dataset",
+      "use": "",
+      "gaps": ""
+    },
+    {
+      "name": "startup-analysis",
+      "repo": "finance-skills",
+      "path": "plugins/startup-tools/skills/startup-analysis",
+      "status": "opt-in",
+      "upstream": "web research on private startups",
+      "use": "For listed companies, use the MCP data servers instead.",
+      "gaps": ""
+    },
+    {
+      "name": "generative-ui",
+      "repo": "finance-skills",
+      "path": "plugins/ui-tools/skills/generative-ui",
+      "status": "native",
+      "upstream": "data already in the conversation",
+      "use": "In VS Code, write a standalone HTML file under `reports/` and open it in a browser.",
+      "gaps": ""
+    }
+  ]
+}
