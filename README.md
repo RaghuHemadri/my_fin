@@ -43,8 +43,10 @@ portfolio/ + reports/      your holdings and the research output
 | `.mcp.json` | The four data servers for Copilot CLI and the VS Code Copilot harness (portable `mcpServers` format) |
 | `.vscode/mcp.json` | The same servers for the VS Code Local harness (`servers` format) |
 | `mcp/register-user-config.sh` | Registers the four servers in `~/.copilot/mcp-config.json`, which Copilot agent sessions read at start |
-| `mcp/launch.sh` | Starts the three local servers (`tradingmcp`, `yahoo-finance`, `technicals`) with pinned versions and loads `~/.config/my_fin/secrets.env` |
+| `mcp/launch.sh` | Starts the three local servers (`tradingmcp`, `yahoo-finance`, `technicals`) with pinned versions, behind the caching proxy, and loads `~/.config/my_fin/secrets.env` |
 | `mcp/market_technicals.py` | Local `technicals` server: TradingView's public technical rating and indicators computed from Yahoo bars, for NSE, BSE and US stocks |
+| `mcp/cache_proxy.py`, `mcp/cache_core.py`, `mcp/datastore.py` | The caching proxy the local servers run behind, its freshness policy, and the SQLite store (`~/.cache/my_fin/my_fin.sqlite3`) for cached answers, call logs, daily bars and run timings |
+| `mcp/cache_admin.py`, `mcp/stdio_client.py`, `mcp/servers.py` | Cache statistics and clearing; the MCP client the scripts use (with a `health` check); listing or stopping the idle servers of old chats |
 | `.github/copilot-instructions.md` | Always-on rules: the data servers and a map from TradingView tool names to them, read-only, investment rules, how to use the skills |
 | `.github/tradingview-adapter.md` | Data adapter for all skills: the canonical tool names used in skill adapter blocks, the rules, the data map, extra data on the free servers, gaps for each server setup, and the opt-in policy |
 | `.github/skills/` | 100 upstream skills, each with a workspace adapter block at the top of its `SKILL.md`, plus `investment-debate` and `trading-workflow` |
@@ -56,6 +58,8 @@ portfolio/ + reports/      your holdings and the research output
 | `reports/` | All output: debate runs, backtests, workflow runs, dashboards, skill reports (git-ignored) |
 | `memory/decision-log.md` | Created by the first debate run: past ratings, their outcomes and reflections (git-ignored) |
 | `tools/install_skills.py`, `tools/skills_manifest.json`, `tools/upstream.lock.json` | Install and adapt every upstream skill from pinned upstream commits (`--fetch`, `--refresh`, `--update-lock`; see [CONTRIBUTING.md](CONTRIBUTING.md)) |
+| `tools/precompute.py`, `tools/schedule/register-windows-task.ps1` | Debates for your holdings and `portfolio/watchlist.csv` after the markets close, and its Windows Task Scheduler registration |
+| `tools/profile_session.py` | Where a run's time went, read from a Copilot session log |
 | `docs/skill-coverage.md` | Generated list of every skill, its status, the data it uses and its gaps |
 | `tests/`, `.github/workflows/ci.yml` | Tests for the scripts and the repository structure, run by CI |
 | `LICENSE`, `THIRD_PARTY_NOTICES.md`, `licenses/` | This project's MIT license, and the upstream licenses and notices |
@@ -122,11 +126,16 @@ The run writes every stage to `reports/<EXCHANGE>_<TICKER>/<date>/`, then `compl
 | `language` | any language; rating labels stay in English |
 | `date` | a past date gives a historical, point-in-time run |
 | `deep_model`, `quick_model` | models for the judge roles and the other roles |
+| `deep_effort`, `quick_effort` | reasoning effort for the judge roles and the other roles (unset: the session's) |
 | other | `holding_days`, `benchmark`, `fresh=true`, `html=false` |
+
+**Follow-up questions:** a question that today's report already answers is answered from it. A follow-up that only changes your position ("I hold 20 shares at USD 45"), the horizon, the emphasis or the language reuses the finished stages it cannot change, so a position follow-up runs about 5 agents instead of 12. See "Follow-ups and reuse" in the [investment-debate skill](.github/skills/investment-debate/SKILL.md).
+
+**Headless and scheduled runs:** `python3 .github/skills/investment-debate/scripts/run_debate.py NSE:TCS --holding-days 60` runs the same debate outside the chat, with the Copilot CLI (log in once with `copilot`, then `/login`). `python3 tools/precompute.py` runs it after the close for your holdings and `portfolio/watchlist.csv` (copy `watchlist.example.csv`); `tools/schedule/register-windows-task.ps1` schedules that on Windows.
 
 **Backtest:** `/investment-debate backtest tickers=NSE:TCS,NASDAQ:MSFT start=2026-06-01 end=2026-09-30 every=14`. Each cell is a full run, so Copilot states the cost and asks first.
 
-**Track record:** each run first settles past decisions whose 20-trading-day window has passed. It scores them against the home-market index (S&P 500, NIFTY 50 or SENSEX) and writes a short reflection, which the portfolio manager reads next time. Run `python3 .github/skills/investment-debate/scripts/memory_log.py summarize` for hit rate and mean alpha by rating.
+**Track record:** each run first settles past decisions whose holding window has passed (each decision's own `holding_days`, 20 trading days by default), with `settle_pending.py`. It scores them against the home-market index (S&P 500, NIFTY 50 or SENSEX) and writes a short reflection, which the portfolio manager reads next time. Run `python3 .github/skills/investment-debate/scripts/memory_log.py summarize` for hit rate and mean alpha by rating.
 
 **Claude Trading Skills routines:** `/trading-workflow market-regime-daily` (or `core-portfolio-weekly`, `monthly-performance-review` and the others in `workflows/README.md`). `/weekly-trade-strategy` writes the weekly strategy post. `/daily-market-dashboard` builds the dashboard; then switch to the `market-advisor` agent to ask about it.
 
@@ -138,6 +147,21 @@ The run writes every stage to `reports/<EXCHANGE>_<TICKER>/<date>/`, then `compl
 - `yfinance-data`, `yc-reader`, `startup-analysis`, `tradingview-reader`
 
 Their own setup steps (API keys, opencli, tdl) apply.
+
+## How runs stay fast
+
+A shallow debate is 12 agents, and 8 of them must run one after another, so most of a run is the agents writing their reports. Profiling the October runs (`tools/profile_session.py`) showed that data calls were only about 4% of the time and that about 30% of each agent's time went to work that is not analysis. These parts remove that work without changing the roles, their inputs, their methods or their reports:
+
+| Part | What it does |
+| --- | --- |
+| Setup and data in seconds | `prepare_run.py` writes the run's setup files, and `prefetch_data.py` makes every analyst's routine data calls once, in parallel, into one file per analyst. Together they take about 10 s, instead of several minutes of model turns. |
+| Shared cache | The local servers run behind `mcp/cache_proxy.py`. Within a run, all agents see one snapshot, and repeated calls from any chat or script are answered from `~/.cache/my_fin/my_fin.sqlite3`: quotes for 2 minutes, technicals and daily bars for 15–30 minutes, statements and holders for 12 hours. Errors are never cached. The proxy also drops the copy of each Yahoo answer that the server sent twice, which halves what the model reads. |
+| Fewer model turns | Every role reads its inputs in one batch; the analysts batch their remaining calls; the orchestrator launches each role right away. |
+| Reuse | Questions that today's report answers are answered from it, and follow-ups re-run only the stages they change. |
+| Run before you ask | `tools/precompute.py` runs your holdings and watchlist after the close. |
+| Optional effort tiers | `quick_effort` (for example `high` instead of `xhigh`) speeds up the ten non-judge roles. It is off by default because it can make their arguments shallower. |
+
+To see where a run's time went, run `python3 tools/profile_session.py --latest` after it finishes. `python3 mcp/cache_admin.py stats` shows cache hits by tool, and `RUN/run_log.json` holds the stage timings of headless runs.
 
 ## What is included from each project
 
@@ -203,6 +227,7 @@ Per-skill details: [docs/skill-coverage.md](docs/skill-coverage.md).
 Your data stays on your machine:
 - `portfolio/*.csv`, `reports/`, `memory/` and the contents of `state/` are git-ignored.
 - API keys live in `~/.config/my_fin/secrets.env`, outside the repository. You can point `MY_FIN_SECRETS` at another file.
+- The cache, `~/.cache/my_fin/my_fin.sqlite3` (or `MY_FIN_DB`), holds tool answers with their arguments, which include the symbols you hold, plus run timings. `python3 mcp/cache_admin.py clear` empties the answers.
 
 The servers send your queries (symbols, not holdings) to Yahoo Finance, Tapetide, Marketaux and, if you add it, TradingView. Review their terms.
 
@@ -217,10 +242,13 @@ The servers send your queries (symbols, not holdings) to Yahoo Finance, Tapetide
 | News or sentiment says "not configured" | Add `MARKETAUX_API_TOKEN` to `~/.config/my_fin/secrets.env`, then restart `tradingmcp`. |
 | Tapetide stops answering | The free tier allows 50 calls a day. The agents record the gap; try again the next day. |
 | Copilot CLI does not list the servers | Confirm folder trust, then run `/mcp`. The user-level registration from step 3 also applies to the CLI. |
+| A tool answer looks stale or wrong | `python3 mcp/cache_admin.py clear` empties the cache. To run the servers without the proxy, add `MY_FIN_CACHE=0` to `~/.config/my_fin/secrets.env` and start a new chat. `python3 mcp/stdio_client.py health` checks the three local servers. |
+| The headless runner says the CLI is not logged in | Run `copilot` once and use `/login`, or set `COPILOT_GITHUB_TOKEN`. |
+| WSL uses a lot of memory | Each chat keeps its own servers running. `python3 mcp/servers.py` lists them by chat, and `--stop-older-than 24` stops the ones older than a day. |
 
 ## Maintaining
 
-Upstream skills are pinned in `tools/upstream.lock.json`, and `tools/install_skills.py` rebuilds everything from them. Run the tests with `python3 -B -m unittest discover -s tests -v`. To update, regenerate or extend the skills, see [CONTRIBUTING.md](CONTRIBUTING.md).
+Upstream skills are pinned in `tools/upstream.lock.json`, and `tools/install_skills.py` rebuilds everything from them. Run the tests with `python3 -B -m unittest discover -s tests -v`; `MY_FIN_INTEGRATION=1` adds the caching-proxy test, which needs uv. To update, regenerate or extend the skills, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Contributing
 

@@ -14,7 +14,9 @@ They are configured in `.mcp.json` and `.vscode/mcp.json`; the three local ones 
 | `tradingmcp` | Self-hosted TradingMCP (`atilaahmettaner/tradingview-mcp`) | Batch quotes, country screeners, backtests, Marketaux news and sentiment |
 | `tapetide` | Indian-market MCP (NSE and BSE), Google sign-in | Indian news and filings, earnings-call digests, shareholding, promoter pledges, insider/bulk deals, FII/DII flows, India VIX. **Free tier: 50 calls a day.** |
 
-Do not search the web, call other financial APIs (FMP, Alpaca, FRED and so on), or run code that fetches market data yourself. Local scripts that only compute on data already retrieved may be run.
+Do not search the web, call other financial APIs (FMP, Alpaca, FRED and so on), or run code that fetches market data yourself. Local scripts that only compute on data already retrieved may be run. The `investment-debate` scripts (`prepare_run.py`, `prefetch_data.py`, `settle_pending.py`, `variant_run.py`, `run_debate.py`) may be run too: they get their data from the three local servers below, through `mcp/stdio_client.py`.
+
+The three local servers run behind a caching proxy (`mcp/cache_proxy.py`). The same call is answered from a shared cache for a short time: about 2 minutes for quotes, 15–30 minutes for technicals and daily bars, and up to 12 hours for statements and holders. Errors are never cached. Cite the dates that the answers carry (bar dates, quote times, report periods).
 
 The paid TradingView MCP is **not** configured. Skill adapter blocks (`<!-- tradingview-adapter -->`) and `.github/tradingview-adapter.md` still name TradingView tools. This file takes precedence: wherever they name a TradingView tool, use the equivalent below, and never call a TradingView tool name directly.
 

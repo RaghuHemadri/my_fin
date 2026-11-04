@@ -13,7 +13,7 @@ Skill adapter blocks name data tools by their **TradingView MCP** names, for exa
 
 ## Rules
 
-1. **Configured servers only.** Market data comes only from the MCP servers configured for this workspace. Do not search the web, and do not run code that fetches market data itself (FMP, Alpaca, yfinance, FinViz, FRED, CoinGecko, Binance, FXMacroData, hosted CSV files and so on). Opt-in skills are the only exception (see below).
+1. **Configured servers only.** Market data comes only from the MCP servers configured for this workspace. Do not search the web, and do not run code that fetches market data itself (FMP, Alpaca, yfinance, FinViz, FRED, CoinGecko, Binance, FXMacroData, hosted CSV files and so on). Opt-in skills are the only exception (see below). Scripts that call the configured local servers through `mcp/stdio_client.py`, such as the `investment-debate` setup and prefetch scripts, use those servers and are allowed.
 2. **Scripts.** Never run a script that calls one of those services; each skill's adapter block lists its blocked scripts. Local scripts (calculators, scorers, report builders) may run on data you fetched from the servers.
 3. **Input files for local scripts.** When a script needs a prices, events or candidates file, write it from tool output:
    - Copy the values exactly, and keep only the symbols and bars that are needed.
