@@ -49,6 +49,20 @@ class MemoryLogTest(unittest.TestCase):
         self.assertFalse(memory_log.store(self.log, "NSE:TCS", "2026-09-01", "Overweight", "**Rating**: Overweight"))
         self.assertEqual(len(memory_log.load(self.log)), 1)
 
+    def test_replace_pending_never_touches_settled_entries(self):
+        memory_log.store(self.log, "NSE:TCS", "2026-09-01", "Hold", "**Rating**: Hold\n\nfast take")
+        self.assertTrue(memory_log.replace_pending(self.log, "NSE:TCS", "2026-09-01", "Buy", "**Rating**: Buy\n\nfull take"))
+        self.assertEqual([(e["rating"], e["decision"]) for e in memory_log.load(self.log)],
+                         [("Buy", "**Rating**: Buy\n\nfull take")])
+        self.assertFalse(memory_log.replace_pending(self.log, "NSE:TCS", "2026-09-02", "Sell", "**Rating**: Sell"))
+        closes = self.dir / "c.csv"
+        write_closes(closes, [("2026-09-01", 100, 1000), ("2026-09-02", 100, 1000), ("2026-09-03", 105, 1000)])
+        window = memory_log.window_from_csv(closes, "2026-09-01", 1, "2026-10-29")
+        memory_log.settle(self.log, "NSE:TCS", "2026-09-01", window, 1, "It worked.")
+        before = self.log.read_text(encoding="utf-8")
+        self.assertFalse(memory_log.replace_pending(self.log, "NSE:TCS", "2026-09-01", "Sell", "**Rating**: Sell"))
+        self.assertEqual(self.log.read_text(encoding="utf-8"), before)
+
     def test_benchmarks(self):
         self.assertTrue(memory_log.benchmark_for("NSE:TCS"))
         self.assertTrue(memory_log.benchmark_for("BSE:500325"))
@@ -155,6 +169,31 @@ class FinalizeTest(unittest.TestCase):
             state = json.loads((run_dir / "state.json").read_text(encoding="utf-8"))
             self.assertEqual((state["final_rating"], state["investment_debate_state"]["count"]), ("Underweight", 2))
             self.assertIn("| NSE:TCS | Underweight | pending]", log.read_text(encoding="utf-8"))
+
+    def test_full_run_replaces_a_same_day_fast_entry(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            log = Path(tmp) / "log.md"
+
+            def finalize(folder: str, profile: str, rating: str) -> tuple[str, str]:
+                run_dir = Path(tmp) / "reports" / "NSE_TCS" / folder
+                (run_dir / "5_portfolio").mkdir(parents=True)
+                (run_dir / "0_settings.json").write_text(json.dumps({"profile": profile, "analysts": [],
+                                                                     "debate_rounds": 1, "risk_rounds": 1}))
+                (run_dir / "5_portfolio" / "decision.md").write_text(f"**Rating**: {rating}\n")
+                out = run("finalize_run.py", "--run", str(run_dir), "--symbol", "NSE:TCS", "--date", "2026-10-29",
+                          "--memory-log", str(log), "--no-html")
+                self.assertEqual(out.returncode, 0, out.stderr)
+                return json.loads(out.stdout)["memory_entry"], (run_dir / "complete_report.md").read_text(encoding="utf-8")
+
+            entry, report = finalize("2026-10-29", "fast", "Hold")
+            self.assertEqual(entry, "added")
+            self.assertIn("- Profile: fast", report)
+            entry, report = finalize("2026-10-29-2", "full", "Buy")
+            self.assertEqual(entry, "replaced the pending entry from a same-day fast run")
+            self.assertNotIn("- Profile:", report)
+            self.assertEqual(finalize("2026-10-29-3", "fast", "Sell")[0], "already present")  # fast never replaces
+            self.assertEqual(finalize("2026-10-29-4", "full", "Sell")[0], "already present")  # the first full one stays
+            self.assertEqual([e["rating"] for e in memory_log.load(log)], ["Buy"])
 
     def test_missing_decision_is_review(self):
         with tempfile.TemporaryDirectory() as tmp:

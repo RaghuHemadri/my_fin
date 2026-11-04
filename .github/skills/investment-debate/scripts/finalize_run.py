@@ -18,7 +18,7 @@ from datetime import date, datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from memory_log import DEFAULT_LOG, store  # noqa: E402
+from memory_log import DEFAULT_LOG, replace_pending, store  # noqa: E402
 
 RATINGS = ("Buy", "Overweight", "Hold", "Underweight", "Sell")
 REVIEW = "REVIEW"
@@ -113,6 +113,17 @@ def load_settings(run: Path) -> dict:
         return {}
 
 
+def follows_fast_runs(run: Path, run_date: str, settings: dict) -> bool:
+    """True for a full run whose symbol and date were finalized before only by fast runs (its sibling folders
+    `<date>`, `<date>-N`, `<date>-vN`). The memory log then holds a fast decision that this one should replace."""
+    if not settings or settings.get("profile", "full") == "fast":
+        return False
+    here = run.resolve()
+    earlier = [p for p in run.parent.glob(f"{run_date}*")
+               if p.is_dir() and p.resolve() != here and (p / "state.json").exists()]
+    return bool(earlier) and all(load_settings(p).get("profile", "full") == "fast" for p in earlier)
+
+
 def settings_lines(settings: dict) -> list[str]:
     if not settings:
         return ["- Run settings: not recorded (`0_settings.json` missing)."]
@@ -127,6 +138,8 @@ def settings_lines(settings: dict) -> list[str]:
         f"- Models: quick {s('quick_model', 'session default')}, deep {s('deep_model', 'session default')}",
         *([f"- Reasoning effort: quick {s('quick_effort', 'session default')}, deep {s('deep_effort', 'session default')}"]
           if s("quick_effort") or s("deep_effort") else []),
+        *(["- Profile: fast (shorter, less deliberated reports; see the skill's \"Fast profile\")"]
+          if s("profile") == "fast" else []),
         f"- Output language: {s('language', 'English')}",
         f"- Outcome window: {s('holding_days', '?')} trading days vs {s('benchmark', '?')}",
         f"- Data source: {s('data_source', 'free MCP servers')}",
@@ -360,8 +373,12 @@ def main(argv: list[str] | None = None) -> int:
                                      indent=2, ensure_ascii=False), encoding="utf-8")
 
     if decision:
-        added = store(args.memory_log, args.symbol, args.date, rating, decision)
-        memory = "added" if added else "already present"
+        if follows_fast_runs(args.run, args.date, settings) and replace_pending(
+                args.memory_log, args.symbol, args.date, rating, decision):
+            memory = "replaced the pending entry from a same-day fast run"
+        else:
+            added = store(args.memory_log, args.symbol, args.date, rating, decision)
+            memory = "added" if added else "already present"
     else:
         memory = "skipped: no portfolio-manager decision"
     print(json.dumps({

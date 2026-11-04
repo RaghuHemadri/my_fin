@@ -317,7 +317,8 @@ class Runner:
 def setup_run(symbol: str, args: argparse.Namespace) -> Path:
     import prefetch_data  # noqa: PLC0415
     import prepare_run  # noqa: PLC0415
-    argv = ["--symbol", symbol, "--depth", args.depth, "--language", args.language, "--holding-days", str(args.holding_days)]
+    argv = ["--symbol", symbol, "--depth", args.depth, "--language", args.language, "--holding-days", str(args.holding_days),
+            "--profile", args.profile]
     for flag in ("as_of", "analysts", "benchmark", "yahoo_ticker", "mandate", "position", "quick_model", "deep_model",
                  "quick_effort", "deep_effort", "reports_dir", "memory_log"):
         value = getattr(args, flag, None)
@@ -352,6 +353,8 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--run", type=Path, action="append", help="resume an existing run folder (repeatable)")
     p.add_argument("--holding-days", type=int, default=20)
     p.add_argument("--depth", choices=sorted(run_plan.DEPTH_ROUNDS), default="shallow")
+    p.add_argument("--profile", choices=("full", "fast"), default="full",
+                   help="fast: low/medium reasoning effort and short reports, about 5 minutes")
     p.add_argument("--analysts")
     p.add_argument("--language", default="English")
     p.add_argument("--as-of")
@@ -389,11 +392,13 @@ def main(argv: list[str] | None = None) -> int:
     if args.dry_run:
         for target in (args.run or []) + args.symbols:
             run = target if isinstance(target, Path) else None
+            quick_effort, deep_effort = run_plan.effort_tiers(args.profile, args.quick_effort, args.deep_effort)
             settings = run_plan.load_settings(run) if run else {
                 "symbol": target, "analysts": args.analysts.split(",") if args.analysts else list(run_plan.ANALYSTS),
                 "depth": args.depth, "quick_model": args.quick_model, "deep_model": args.deep_model,
-                "quick_effort": args.quick_effort, "deep_effort": args.deep_effort}
-            print(f"# {settings.get('symbol', target)}" + (f" ({rel(run)})" if run else " (new run)"))
+                "quick_effort": quick_effort, "deep_effort": deep_effort, "profile": args.profile}
+            print(f"# {settings.get('symbol', target)}" + (f" ({rel(run)})" if run else " (new run)")
+                  + f", profile {settings.get('profile', 'full')}")
             print("\n".join(plan_text(settings, run, overrides)))
         return 0
     if args.backend == "copilot" and not shutil.which(args.copilot):

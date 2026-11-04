@@ -127,6 +127,7 @@ The run writes every stage to `reports/<EXCHANGE>_<TICKER>/<date>/`, then `compl
 | `date` | a past date gives a historical, point-in-time run |
 | `deep_model`, `quick_model` | models for the judge roles and the other roles |
 | `deep_effort`, `quick_effort` | reasoning effort for the judge roles and the other roles (unset: the session's) |
+| `profile` | `full` (default) or `fast`: the same graph in about 5 minutes, with lower reasoning effort and short reports (see below) |
 | other | `holding_days`, `benchmark`, `fresh=true`, `html=false` |
 
 **Follow-up questions:** a question that today's report already answers is answered from it. A follow-up that only changes your position ("I hold 20 shares at USD 45"), the horizon, the emphasis or the language reuses the finished stages it cannot change, so a position follow-up runs about 5 agents instead of 12. See "Follow-ups and reuse" in the [investment-debate skill](.github/skills/investment-debate/SKILL.md).
@@ -160,6 +161,7 @@ A shallow debate is 12 agents, and 8 of them must run one after another, so most
 | Reuse | Questions that today's report answers are answered from it, and follow-ups re-run only the stages they change. |
 | Run before you ask | `tools/precompute.py` runs your holdings and watchlist after the close. |
 | Optional effort tiers | `quick_effort` (for example `high` instead of `xhigh`) speeds up the ten non-judge roles. It is off by default because it can make their arguments shallower. |
+| Fast profile (opt-in) | `/investment-debate NSE:TCS profile=fast` keeps the graph, the roles, their inputs, the data and the report sections, but runs the ten quick roles at `low` reasoning effort and the two judges at `medium`, with word budgets and at most 3 extra data calls per analyst. A shallow run takes about 5–6 minutes instead of 30–45. The arguments are shorter and less thoroughly checked, so use it for quick reads and the full profile (or `tools/precompute.py`) for decisions. |
 
 To see where a run's time went, run `python3 tools/profile_session.py --latest` after it finishes. `python3 mcp/cache_admin.py stats` shows cache hits by tool, and `RUN/run_log.json` holds the stage timings of headless runs.
 

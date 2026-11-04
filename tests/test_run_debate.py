@@ -144,6 +144,23 @@ class RunnerTest(unittest.TestCase):
         self.assertEqual(text.count("ta-bull-researcher"), 3)
         self.assertIn("ta-portfolio-manager           deep  model=cli default effort=xhigh", text)
 
+    def test_fast_profile_dry_run(self):
+        buffer = io.StringIO()
+        with redirect_stdout(buffer):
+            self.assertEqual(run_debate.main(["NSE:TCS", "--dry-run", "--profile", "fast"]), 0)
+        text = buffer.getvalue()
+        self.assertIn("profile fast", text.splitlines()[0])
+        self.assertIn("ta-bull-researcher             quick model=cli default effort=low", text)
+        self.assertIn("ta-portfolio-manager           deep  model=cli default effort=medium", text)
+
+    def test_fast_profile_reaches_the_backend(self):
+        run = prepared_run(self.base, profile="fast", quick_effort="low", deep_effort="medium")
+        backend = run_debate.FakeBackend()
+        self.runner(backend, overrides={"model": None, "effort": "xhigh"}).run_debate(run)
+        efforts = {c["agent"]: c["effort"] for c in backend.calls}
+        self.assertEqual((efforts["ta-market-analyst"], efforts["ta-trader"]), ("low", "low"))
+        self.assertEqual((efforts["ta-research-manager"], efforts["ta-portfolio-manager"]), ("medium", "medium"))
+
 
 if __name__ == "__main__":
     unittest.main()

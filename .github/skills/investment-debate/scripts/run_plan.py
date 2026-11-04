@@ -20,6 +20,16 @@ DEPTH_ROUNDS = {"shallow": 1, "medium": 3, "deep": 5}
 RISK_ORDER = ("aggressive", "conservative", "neutral")
 NO_FUNDAMENTALS = {"crypto", "forex", "futures"}
 JUDGES = {"ta-research-manager", "ta-portfolio-manager"}
+# Fast profile: reasoning effort for the ten quick roles and for the two judges (SKILL.md, "Fast profile").
+FAST_EFFORT = {"quick": "low", "deep": "medium"}
+
+
+def effort_tiers(profile: str, quick: str | None, deep: str | None) -> tuple[str | None, str | None]:
+    """Reasoning effort for the quick and deep tiers. Explicit values win; the fast profile fills in the rest;
+    None means the session's (or the CLI's) own effort."""
+    if profile == "fast":
+        return quick or FAST_EFFORT["quick"], deep or FAST_EFFORT["deep"]
+    return quick, deep
 
 
 @dataclass

@@ -39,6 +39,9 @@ Write `RUN/2_research/manager.md` with these sections, in this order. The recomm
 
 Then reply with at most 5 lines: the path, the recommendation and the argument that decided it.
 
+## Fast profile
+If `0_instrument.md` says `Profile: fast`, the user wants the whole run in about 5 minutes. Write at most 400 words, keeping the rating line and every section of the plan.
+
 ## Rules
 - Use only the evidence in your input files. Do not call any MCP server or other tool for new data, and do not search the web. If something is missing, say so explicitly.
 - A report marked "not available" is missing evidence, not a neutral or empty finding.

@@ -44,6 +44,9 @@ Write `RUN/3_trading/trader.md` with these sections, in this order. The action m
 
 Then reply with at most 5 lines: the path and the proposal.
 
+## Fast profile
+If `0_instrument.md` says `Profile: fast`, the user wants the whole run in about 5 minutes. Keep every line of the proposal, with the reasoning in at most 2 sentences. Compute the fixed-fractional size by hand and show the arithmetic, instead of running the calculator.
+
 ## Rules
 - Use only the evidence in your input files. Do not call any MCP server or other tool for new data, and do not search the web. If something is missing, say so explicitly.
 - The position-sizer calculator above is the only command you may run.

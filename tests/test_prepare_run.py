@@ -86,6 +86,12 @@ class RunPlanTest(unittest.TestCase):
             (run / "1_analysts" / "market.md").write_text("report")
             self.assertEqual(run_plan.resume_point(run), "2_research/01_bull")
 
+    def test_effort_tiers(self):
+        self.assertEqual(run_plan.effort_tiers("full", None, None), (None, None))
+        self.assertEqual(run_plan.effort_tiers("full", "high", None), ("high", None))
+        self.assertEqual(run_plan.effort_tiers("fast", None, None), ("low", "medium"))
+        self.assertEqual(run_plan.effort_tiers("fast", None, "high"), ("low", "high"))
+
 
 class PrepareRunTest(unittest.TestCase):
     def setUp(self):
@@ -134,6 +140,22 @@ class PrepareRunTest(unittest.TestCase):
         again = self.prepare("--symbol", "NSE:TCS")
         self.assertEqual(again["written"], ["0_past_context.md"])
         self.assertIn("0_portfolio.md", again["kept"])
+
+    def test_fast_profile(self):
+        run = Path(self.prepare("--symbol", "NSE:TCS", "--profile", "fast")["run"])
+        settings = json.loads((run / "0_settings.json").read_text())
+        self.assertEqual((settings["profile"], settings["quick_effort"], settings["deep_effort"]), ("fast", "low", "medium"))
+        self.assertIn("- Profile: fast.", (run / "0_instrument.md").read_text())
+
+        run = Path(self.prepare("--symbol", "NASDAQ:MSFT", "--profile", "fast", "--quick-effort", "high")["run"])
+        settings = json.loads((run / "0_settings.json").read_text())
+        self.assertEqual((settings["quick_effort"], settings["deep_effort"]), ("high", "medium"))
+
+        run = Path(self.prepare("--symbol", "NSE:TCS", "--fresh")["run"])
+        settings = json.loads((run / "0_settings.json").read_text())
+        self.assertEqual((settings["profile"], settings["quick_effort"], settings["deep_effort"]),
+                         ("full", "session effort", "session effort"))
+        self.assertNotIn("Profile:", (run / "0_instrument.md").read_text())
 
     def test_futures_drop_fundamentals_and_position_override(self):
         out = self.prepare("--symbol", "COMEX:GC1!", "--yahoo-ticker", "GC=F", "--benchmark", "^GSPC",

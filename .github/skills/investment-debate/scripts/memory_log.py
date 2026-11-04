@@ -89,6 +89,19 @@ def store(log: Path, symbol: str, run_date: str, rating: str, decision: str) -> 
     return True
 
 
+def replace_pending(log: Path, symbol: str, run_date: str, rating: str, decision: str) -> bool:
+    """Replace the pending entry for this date and symbol with a new decision; settled entries are never changed.
+    finalize_run.py uses it when a full run follows a same-day fast run, so the log tracks the fuller decision."""
+    blocks = read_blocks(log)
+    for i, block in enumerate(blocks):
+        entry = parse_entry(block)
+        if entry and entry["pending"] and entry["date"] == run_date and entry["symbol"] == symbol:
+            blocks[i] = f"[{run_date} | {symbol} | {rating} | pending]\n\nDECISION:\n{decision.strip()}"
+            write_blocks(log, blocks)
+            return True
+    return False
+
+
 def window_from_csv(path: Path, decision_date: str, holding_days: int, today: str) -> dict | None:
     """Entry at the first close after the decision date; exit holding_days sessions later. None until it has traded."""
     rows = []

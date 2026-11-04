@@ -263,6 +263,8 @@ def instrument_md(s: dict, info: dict | None, info_note: str, quote: dict | None
     lines += [f"- Benchmark: {s['benchmark']}",
               f"- Holding period: {s['holding_days']} trading days (use it as horizon_days in technicals price_statistics)",
               f"- Depth: {s['depth']} ({s['debate_rounds']} bull/bear round(s), {s['risk_rounds']} risk round(s))",
+              *(["- Profile: fast. Every role follows its \"Fast profile\" rule: less deliberation and a short report, "
+                 "so the run takes about 5 minutes."] if s.get("profile") == "fast" else []),
               "",
               "Analyze exactly this instrument and refer to it by this exact symbol. Do not substitute a different "
               "company unless a tool result disproves this identity.",
@@ -398,6 +400,7 @@ def prepare(args: argparse.Namespace, fetcher_factory=None) -> dict:
     if unknown:
         raise ValueError(f"unknown analysts: {sorted(unknown)}")
     rounds = run_plan.DEPTH_ROUNDS[args.depth]
+    quick_effort, deep_effort = run_plan.effort_tiers(args.profile, args.quick_effort, args.deep_effort)
     if not marketaux_configured():
         gaps.append("Marketaux key not configured: tradingmcp financial_news and market_sentiment return no news")
     pending = [e for e in memory_log.load(Path(args.memory_log)) if e["pending"]]
@@ -408,7 +411,8 @@ def prepare(args: argparse.Namespace, fetcher_factory=None) -> dict:
         "analysts": analysts, "depth": args.depth, "debate_rounds": args.debate_rounds or rounds,
         "risk_rounds": args.risk_rounds or rounds, "language": args.language,
         "quick_model": args.quick_model or "session model", "deep_model": args.deep_model or "session model",
-        "quick_effort": args.quick_effort or "session effort", "deep_effort": args.deep_effort or "session effort",
+        "quick_effort": quick_effort or "session effort", "deep_effort": deep_effort or "session effort",
+        "profile": args.profile,
         "holding_days": args.holding_days, "benchmark": benchmark, "html": not args.no_html,
         "memory_max_entries": args.memory_max_entries, "fresh": args.fresh, "memory_log": rel(args.memory_log),
         "memory_note": (f"{len(pending)} pending decision(s) in the memory log; settle them with settle_pending.py."
@@ -449,6 +453,8 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--as-of", help="analysis date YYYY-MM-DD (default today; earlier means a historical run)")
     p.add_argument("--today", help=argparse.SUPPRESS)
     p.add_argument("--depth", choices=sorted(run_plan.DEPTH_ROUNDS), default="shallow")
+    p.add_argument("--profile", choices=("full", "fast"), default="full",
+                   help="fast: low/medium reasoning effort and short reports, about 5 minutes (SKILL.md, Fast profile)")
     p.add_argument("--debate-rounds", type=int)
     p.add_argument("--risk-rounds", type=int)
     p.add_argument("--analysts", help="comma-separated subset of market,sentiment,news,fundamentals")
@@ -496,7 +502,6 @@ def main(argv: list[str] | None = None) -> int:
             summary["prefetch"] = {"error": str(exc)}
     print(json.dumps(summary, indent=1, ensure_ascii=False))
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())

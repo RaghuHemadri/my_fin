@@ -50,6 +50,9 @@ Write `RUN/5_portfolio/decision.md` with these sections, in this order. The firs
 
 Then reply with at most 6 lines: the path, the rating, the confidence and the two deciding reasons.
 
+## Fast profile
+If `0_instrument.md` says `Profile: fast`, the user wants the whole run in about 5 minutes. Write at most 600 words in total, keeping the first two lines and every section, including the scenario table.
+
 ## Rules
 - Use only the evidence in your input files. Do not call any MCP server or other tool for new data, and do not search the web. If something is missing, say so explicitly.
 - A report marked "not available" is missing evidence, not a neutral or empty finding.

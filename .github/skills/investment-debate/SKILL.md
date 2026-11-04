@@ -7,7 +7,7 @@ description: >-
   (Buy/Overweight/Hold/Underweight/Sell). Includes research depth, output language, historical as-of runs, a
   decision memory log with reflection, and backtests over tickers and dates. Use to evaluate, debate or deep-dive a
   holding or opportunity, or to backtest the process. Data comes only from the free MCP servers in .github/copilot-instructions.md (technicals, Yahoo Finance, TradingMCP, Tapetide). Never places trades.
-argument-hint: "<EXCHANGE:TICKER> [depth=shallow|medium|deep] [analysts=...] [date=YYYY-MM-DD] [language=...] | backtest tickers=... start=... end=..."
+argument-hint: "<EXCHANGE:TICKER> [depth=shallow|medium|deep] [profile=full|fast] [analysts=...] [date=YYYY-MM-DD] [language=...] | backtest tickers=... start=... end=..."
 ---
 
 # Investment Debate: the TradingAgents workflow for Copilot
@@ -61,6 +61,7 @@ The user can set any of these in the request, for example `NSE:TCS depth=medium 
 | `asset_type` | from `quoteType` in `yahoo-finance` `get_stock_info`: stock, fund/ETF, index, crypto, forex, futures | `asset_type` (stock or crypto) |
 | `quick_model`, `deep_model` | the session model | `quick_think_llm` and `deep_think_llm` (see "Delegation") |
 | `quick_effort`, `deep_effort` | the session's reasoning effort | none; Copilot's reasoning effort for the quick roles and for the two judges (see "Delegation") |
+| `profile` | `full` | none; `fast` runs the same graph in about 5 minutes, with lower reasoning effort and short reports (see "Fast profile") |
 | `holding_days` | 20 trading days | `holding_period_days` (5 there; 20 suits an investing horizon) |
 | `benchmark` | Yahoo tickers: US listings `^GSPC`, NSE `^NSEI` (NIFTY 50), BSE `^BSESN` (SENSEX), otherwise the home index | `benchmark_ticker`, `benchmark_map` |
 | `html` | true | HTML report |
@@ -82,7 +83,7 @@ python3 .github/skills/investment-debate/scripts/prepare_run.py --symbol <EXCHAN
   [--holding-days N] [--depth shallow|medium|deep] [--analysts market,sentiment,news,fundamentals] \
   [--language <language>] [--as-of YYYY-MM-DD] [--mandate "<the user's question, horizon and emphasis>"] \
   [--position QTY@AVG_COST] [--benchmark <Yahoo index>] [--yahoo-ticker <ticker>] [--tapetide-symbol <symbol>] \
-  [--quick-model <model>] [--deep-model <model>] [--fresh]
+  [--quick-model <model>] [--deep-model <model>] [--profile full|fast] [--fresh]
 ```
 
 - Resolve the symbol first (item 1). The script confirms it with `get_stock_info` and `stock_prices`. If it cannot, it exits with code 2 and an `error`; then ask the user.
@@ -103,13 +104,14 @@ python3 .github/skills/investment-debate/scripts/prepare_run.py --symbol <EXCHAN
 4. **`RUN/0_settings.json`.** Write all the settings above as JSON with these keys:
    - `symbol`, `run_date` (today), `mode` (live or historical), `as_of`, `asset_type`
    - `analysts` (a list), `depth`, `debate_rounds`, `risk_rounds`, `language`
-   - `quick_model`, `deep_model`, `quick_effort`, `deep_effort`, `holding_days`, `benchmark`
+   - `quick_model`, `deep_model`, `quick_effort`, `deep_effort`, `profile`, `holding_days`, `benchmark`
    - `memory_log`, `memory_note`, `data_source` (`"free MCP servers (technicals, Yahoo Finance, TradingMCP, Tapetide)"`)
 5. **`RUN/0_instrument.md`**, read by every agent. Write these lines:
    - `Symbol`, `Company`, `Type`, `Asset type`, `Exchange`, `Currency`, `Sector / Industry`
    - `Analysis date`, `Mode: live` (or `Mode: historical as of <as_of>`), `Output language`
    - `Data source: free MCP servers (technicals, Yahoo Finance, TradingMCP, Tapetide)`
    - `Yahoo ticker: <e.g. LODHA.NS>` and, for Indian companies, `Tapetide symbol: <e.g. LODHA>`, so agents need not convert
+   - For `profile=fast` only, the line `Profile: fast`, which turns on each role's "Fast profile" rule
    - This identity rule: "Analyze exactly this instrument and refer to it by this exact symbol. Do not substitute a different company unless a tool result disproves this identity."
 6. **`RUN/0_portfolio.md`**, read only by the trader, the risk analysts and the portfolio manager. Build it from `portfolio/holdings.csv` and `portfolio/cash.csv`:
    - The current position in this symbol (quantity, average cost, currency), or "No current position in <symbol>".
@@ -196,7 +198,7 @@ It processes local files only. Then reply to the user with:
 - the data gaps, including Indian regulatory coverage where relevant
 - links to `complete_report.md` and `complete_report.html`
 
-State that the rating is a research conclusion, not an order.
+State that the rating is a research conclusion, not an order. For `profile=fast`, keep the reply shorter (see "Fast profile").
 
 ## Follow-ups and reuse
 
@@ -213,6 +215,26 @@ A finished run already answers questions about its symbol and analysis date. Bef
 5. **The latest run is from an earlier day.** Say so and offer a fresh run. Reuse it with `--allow-older` only if the user agrees; the variant keeps the earlier analysis date.
 
 The memory log keeps the first decision recorded for a symbol and date, so a variant does not add another entry.
+
+## Fast profile
+
+A full shallow run takes 30–45 minutes, because 8 roles run one after another and each one deliberates and writes a long report. `profile=fast` keeps the graph, the roles, their order, their inputs, the data and the report sections, and makes each role do less. A shallow run then takes about 5–6 minutes.
+
+| | `full` (default) | `fast` |
+| --- | --- | --- |
+| Reasoning effort | the session's | `low` for the ten quick roles and `medium` for the two judges, unless `quick_effort` or `deep_effort` is set |
+| Report length | as each agent's instructions say | word budgets: analysts 600 (plus the key-points table), bull and bear 350, research manager 400, trader a few lines, risk turns 250, portfolio manager 600 |
+| Analysts' own MCP calls | up to 15 (12 for sentiment) | the prefetched data, plus at most 3 (for Indian companies, `tapetide` first); no optional backtests; at most 3 peers |
+| Position size | the position-sizer calculator | computed by hand (the calculator's fixed-fractional method) |
+
+To run it:
+1. Pass `--profile fast` to `prepare_run.py`. It records the profile and the effort tiers in `0_settings.json` and adds `Profile: fast` to `0_instrument.md`. Every role reads that line and applies its own "Fast profile" rule.
+2. Pass the quick and deep efforts from `0_settings.json` to every delegation, if the delegation tool accepts a reasoning effort.
+3. Keep the final reply short: the rating, the scenario table, the levels to watch, the data gaps and the links.
+
+Same-day reuse ("Follow-ups and reuse", item 1) depends on the profile. A same-day full report answers a fast request. A same-day fast report does not answer a request for the full analysis: start a new run with `--fresh`. Its `finalize_run.py` then replaces the fast run's pending memory-log entry, so the log tracks the full decision; a settled entry is never changed.
+
+The fast profile changes how much each role deliberates and writes, not what it does or which data it sees. Its arguments are shorter and less thoroughly checked, so use it for quick reads, and use the full profile (or `tools/precompute.py`, which runs the full profile ahead of time) for decisions. A faster model for the quick roles (`quick_model`), or a lower reasoning effort for the chat itself in the model picker, shortens it further.
 
 ## Headless runner
 
@@ -240,7 +262,7 @@ python3 .github/skills/investment-debate/scripts/run_debate.py NSE:TCS --dry-run
 - **Tool.** Run each role as a subagent with its custom agent. In Copilot CLI and the VS Code Copilot harness, delegate with the task tool. In the VS Code Local harness, use `runSubagent`.
 - **What to pass.** Pass the symbol, `as_of`, the mode, the language, `RUN`, the exact input file paths, the output file path and, for debate turns, `NN`. Pass paths, not report contents. Never edit an agent's output file.
 - **Models.** TradingAgents runs the two judges (`ta-research-manager`, `ta-portfolio-manager`) on a deep-thinking model and the other roles on a quick one. If `deep_model` or `quick_model` is set and the delegation tool accepts a model, pass it. Otherwise every role uses the session model; record that in `0_settings.json`.
-- **Reasoning effort.** `quick_effort` and `deep_effort` work the same way: if one is set and the delegation tool accepts a reasoning effort (`low`, `medium`, `high`, `xhigh`, `max`), pass it to the quick roles or to the two judges. Both are unset by default, so every role keeps the session's model and effort and the analysis is unchanged. Most of each role's time is spent generating its report, so a lower effort for the ten quick roles is the largest remaining speed lever. It can also make their arguments shallower, so compare runs on the same symbol and date before relying on it.
+- **Reasoning effort.** `quick_effort` and `deep_effort` work the same way: if one is set and the delegation tool accepts a reasoning effort (`low`, `medium`, `high`, `xhigh`, `max`), pass it to the quick roles or to the two judges. Both are unset by default, so every role keeps the session's model and effort and the analysis is unchanged. `profile=fast` sets them to `low` and `medium` (see "Fast profile"). Most of each role's time is spent generating its report, so a lower effort for the ten quick roles is the largest remaining speed lever. It can also make their arguments shallower, so compare runs on the same symbol and date before relying on it.
 - **Isolation**, as in TradingAgents:
   - Analysts see only the instrument.
   - The bull and bear researchers and the research manager never see holdings.

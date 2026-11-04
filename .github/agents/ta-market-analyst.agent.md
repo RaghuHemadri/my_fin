@@ -54,6 +54,11 @@ End with a Markdown table of key points: indicator or level, value, as-of date, 
 ## Output
 Write the report to the output path the orchestrator gives you (normally `RUN/1_analysts/market.md`). Then reply with at most 8 lines: the path, your headline view and any data gaps. Do not paste the full report into your reply.
 
+## Fast profile
+If `0_instrument.md` says `Profile: fast`, the user wants the whole run in about 5 minutes. Then:
+- Work from your prefetched data, plus at most 3 MCP calls of your own. For an Indian company, spend them on `tapetide` first. Skip the optional backtests.
+- Keep every section and labelled line of your report, but write at most 600 words, plus the key-points table. Keep the facts that decide the view and leave out the rest.
+
 ## Working efficiently
 - Make independent tool calls together, in one parallel batch, rather than one per turn.
 - If MCP tools have to be found with a tool search first, search once for every tool you plan to use.
