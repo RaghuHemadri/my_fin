@@ -179,7 +179,8 @@ class FakeBackend:
             return "ok"
         body = {"ta-trader": "**Action**: Hold\n\nFINAL TRANSACTION PROPOSAL (research only, not an order): **HOLD**\n",
                 "ta-portfolio-manager": "**Rating**: Hold\n**Confidence**: medium\n"}.get(agent, f"# {agent}\nfake output\n")
-        target.parent.mkdir(parents=True, exist_ok=True)
+        if not target.parent.is_dir():  # like the real agents: they can write files but cannot create folders
+            return f"could not save {target}: the folder does not exist"
         target.write_text(body, encoding="utf-8")
         return "ok"
 
@@ -203,6 +204,7 @@ class Runner:
 
     def run_stage(self, run: Path, settings: dict, stage: run_plan.Stage, run_id: str, log_rows: list) -> None:
         model, effort = tier_values(settings, stage, self.overrides)
+        (run / stage.output).parent.mkdir(parents=True, exist_ok=True)  # agents cannot create folders
         bundle = build_inputs(run, stage) if stage.kind != "analyst" else None
         prompt = stage_prompt(run, settings, stage, bundle)
         env = {**os.environ, "MY_FIN_RUN": run_id, "COPILOT_AUTO_UPDATE": "false"}

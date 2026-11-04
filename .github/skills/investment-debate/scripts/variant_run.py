@@ -114,6 +114,7 @@ def make_variant(src: Path, change: str, holding_days: int | None = None, langua
 
     dst = next_variant(src)
     dst.mkdir(parents=True)
+    run_plan.make_stage_dirs(dst)
     for name in files:
         (dst / name).parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(src / name, dst / name)

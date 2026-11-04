@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 ANALYSTS = ("market", "sentiment", "news", "fundamentals")
+STAGE_DIRS = ("1_analysts", "2_research", "3_trading", "4_risk", "5_portfolio")
 ANALYST_NAMES = {"market": "Market Analyst", "sentiment": "Sentiment Analyst", "news": "News Analyst",
                  "fundamentals": "Fundamentals Analyst"}
 DEPTH_ROUNDS = {"shallow": 1, "medium": 3, "deep": 5}
@@ -83,6 +84,12 @@ def load_settings(run: Path) -> dict:
         return json.loads((run / "0_settings.json").read_text(encoding="utf-8"))
     except (FileNotFoundError, json.JSONDecodeError):
         return {}
+
+
+def make_stage_dirs(run: Path) -> None:
+    """Create the stage folders up front: the role agents can write files but cannot create folders."""
+    for name in STAGE_DIRS:
+        (run / name).mkdir(parents=True, exist_ok=True)
 
 
 def done(run: Path, stage: Stage) -> bool:

@@ -112,6 +112,8 @@ class PrepareRunTest(unittest.TestCase):
     def test_live_run_files(self):
         out = self.prepare("--symbol", "NSE:TCS", "--holding-days", "210", "--mandate", "8-12 month view.")
         run = Path(out["run"])
+        for folder in run_plan.STAGE_DIRS:  # the role agents cannot create folders, so setup does
+            self.assertTrue((run / folder).is_dir(), folder)
         self.assertEqual((out["mode"], out["asset_type"], out["resume_from"]), ("live", "stock", "1_analysts/market"))
         self.assertEqual(out["written"], ["0_settings.json", "0_instrument.md", "0_portfolio.md", "0_past_context.md"])
         settings = json.loads((run / "0_settings.json").read_text())

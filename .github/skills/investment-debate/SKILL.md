@@ -90,7 +90,7 @@ python3 .github/skills/investment-debate/scripts/prepare_run.py --symbol <EXCHAN
 - `--position` records a position the user states in chat (for example `20@45`) that is not in `holdings.csv`.
 - Symbols outside NSE, BSE and the US exchanges need `--yahoo-ticker` (for example `GC=F` for `COMEX:GC1!`) and `--benchmark`.
 - Its JSON output gives `run` (this is `RUN`), `mode`, `resume_from` (the first missing stage), `pending_memory` and `data_gaps`. Continue from `resume_from`.
-- It keeps setup files that already exist, because they are the checkpoint. It also writes the placeholder file of every analyst that is not selected.
+- It keeps setup files that already exist, because they are the checkpoint. It also writes the placeholder file of every analyst that is not selected, and creates the stage folders, because the role agents can write files but cannot create folders.
 - It then runs `prefetch_data.py`. That script makes the analysts' unconditional data calls once, in parallel, through the same MCP servers, and writes one file per analyst to `RUN/0_data/` (the `prefetch` part of the output lists them and any gaps). Each analyst reads its file instead of repeating those calls. `tapetide` calls and calls that need judgment stay with the analysts. Use `--no-prefetch` to skip it.
 - If the script fails, do items 1–7 by hand. They also describe what the script writes.
 
@@ -99,6 +99,7 @@ python3 .github/skills/investment-debate/scripts/prepare_run.py --symbol <EXCHAN
 3. **Run folder.** Set `SAFE_SYMBOL` to the symbol with `:` replaced by `_`, and `RUN` to `reports/<SAFE_SYMBOL>/<as_of>`. The stage files are the checkpoint:
    - If `RUN` already has stage files, resume from the first missing stage.
    - If `fresh` is set, use `<as_of>-2`, `<as_of>-3` and so on instead.
+   - Create the stage folders `1_analysts`, `2_research`, `3_trading`, `4_risk` and `5_portfolio` before delegating. The role agents cannot create folders.
 4. **`RUN/0_settings.json`.** Write all the settings above as JSON with these keys:
    - `symbol`, `run_date` (today), `mode` (live or historical), `as_of`, `asset_type`
    - `analysts` (a list), `depth`, `debate_rounds`, `risk_rounds`, `language`

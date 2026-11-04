@@ -56,6 +56,7 @@ class VariantRunTest(unittest.TestCase):
     def test_position_reuses_research_only(self):
         out = self.variant("position", position="20@45", mandate="I hold 20 shares at USD 45; buy the dip?")
         run = Path(out["run"])
+        self.assertTrue(all((run / folder).is_dir() for folder in run_plan.STAGE_DIRS))
         self.assertTrue(run.name.endswith("2026-11-04-v2"))
         self.assertEqual(out["resume_from"], "3_trading/trader")
         for name in ("1_analysts/market.md", "2_research/01_bull.md", "2_research/02_bear.md", "2_research/manager.md"):

@@ -422,6 +422,7 @@ def prepare(args: argparse.Namespace, fetcher_factory=None) -> dict:
     written: list[str] = []
     kept: list[str] = []
     run.mkdir(parents=True, exist_ok=True)
+    run_plan.make_stage_dirs(run)
     write(run / "0_settings.json", json.dumps(settings, indent=1, ensure_ascii=False) + "\n", args.rewrite_setup,
           written, kept, run)
     write(run / "0_instrument.md", instrument_md(settings, info, info_note, quote, quote_note, args.mandate),
