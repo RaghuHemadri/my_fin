@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Starts one of this project's local MCP servers over stdio.
-# Usage: bash mcp/launch.sh <tradingmcp|yahoo-finance|technicals>
+# Usage: bash mcp/launch.sh [--direct] <tradingmcp|yahoo-finance|technicals>
+# By default the server runs behind mcp/cache_proxy.py: the same tools, plus a response cache shared by
+# every session and script on this machine (~/.cache/my_fin/my_fin.sqlite3). --direct starts the server
+# itself (the proxy uses it); MY_FIN_CACHE=0 makes every start direct, which is the original behaviour.
 # Secrets (optional) are read from ~/.config/my_fin/secrets.env, outside the repo.
 # Nothing may be printed to stdout except MCP protocol messages.
 set -euo pipefail
@@ -15,12 +18,34 @@ if [ -f "$SECRETS" ]; then
 fi
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+DIRECT=0
+if [ "${1:-}" = "--direct" ]; then
+  DIRECT=1
+  shift
+fi
+case "$(printf '%s' "${MY_FIN_CACHE:-1}" | tr '[:upper:]' '[:lower:]')" in
+  0|off|false|no) DIRECT=1 ;;
+esac
+
+NAME="${1:-}"
+case "$NAME" in
+  tradingmcp|yahoo-finance|technicals) ;;
+  *)
+    echo "usage: bash mcp/launch.sh [--direct] <tradingmcp|yahoo-finance|technicals>" >&2
+    exit 2
+    ;;
+esac
+
 if ! command -v uvx >/dev/null 2>&1; then
   echo "uv is not installed. Run: curl -LsSf https://astral.sh/uv/install.sh | sh" >&2
   exit 127
 fi
 
-case "${1:-}" in
+if [ "$DIRECT" = 0 ]; then
+  exec uv run --quiet --script "$HERE/cache_proxy.py" --name "$NAME" -- bash "$HERE/launch.sh" --direct "$NAME"
+fi
+
+case "$NAME" in
   tradingmcp)
     # Self-hosted TradingMCP (github.com/atilaahmettaner/tradingview-mcp). Python package only:
     # npm packages with this name are malicious copies.
@@ -36,9 +61,5 @@ case "${1:-}" in
     ;;
   technicals)
     exec uv run --quiet --script "$HERE/market_technicals.py"
-    ;;
-  *)
-    echo "usage: bash mcp/launch.sh <tradingmcp|yahoo-finance|technicals>" >&2
-    exit 2
     ;;
 esac
