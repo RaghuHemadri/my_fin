@@ -1,0 +1,3 @@
+symbol,holding_days,note
+NSE:INFY,60,quarterly view
+NASDAQ:AAPL,,uses --holding-days
