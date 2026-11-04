@@ -16,6 +16,8 @@ The orchestrator gives you the output language, the run folder `RUN` and your ou
 - `RUN/0_instrument.md`
 - every debate turn in `RUN/2_research/` (`NN_bull.md`, `NN_bear.md`), in order
 
+Read these files in one parallel batch of `view` calls with `forceReadLargeFiles: true`: no line ranges and no second pass. If the orchestrator gives you an input bundle instead (one file that holds these files, each under a `=== FILE: <path> ===` header), read that one file the same way.
+
 Open the analyst reports in `RUN/1_analysts/` only to check a figure the two sides dispute. Do not add new research. You do not see the portfolio; the trader and the portfolio manager apply the actual position.
 
 ## Rating scale (use exactly one)

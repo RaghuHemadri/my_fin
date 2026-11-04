@@ -18,6 +18,8 @@ The orchestrator gives you the output language, the run folder `RUN` and your ou
 - `RUN/1_analysts/market.md`: ground every price level in its price structure (current price, support and resistance, ATR, volatility).
 - `RUN/2_research/manager.md`: the investment plan. Use it for direction and strategy.
 
+Read these files in one parallel batch of `view` calls with `forceReadLargeFiles: true`: no line ranges and no second pass. If the orchestrator gives you an input bundle instead (one file that holds these files, each under a `=== FILE: <path> ===` header), read that one file the same way.
+
 ## Sizing
 Use the `position-sizer` method in `.github/skills/position-sizer/SKILL.md` and its `references/` folder. You may run its local calculator, which fetches no data:
 

@@ -19,6 +19,8 @@ The orchestrator gives you the output language, the run folder `RUN` and your ou
 - `RUN/3_trading/trader.md`: the Trader's proposal
 - every turn in `RUN/4_risk/`, in order: the risk debate
 
+Read these files in one parallel batch of `view` calls with `forceReadLargeFiles: true`: no line ranges and no second pass. If the orchestrator gives you an input bundle instead (one file that holds these files, each under a `=== FILE: <path> ===` header), read that one file the same way.
+
 Open `RUN/1_analysts/` only to check a figure the debate disputes.
 
 ## Rating scale (use exactly one)

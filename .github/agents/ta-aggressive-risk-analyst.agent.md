@@ -20,6 +20,8 @@ The orchestrator gives you the output language, the run folder `RUN`, your turn 
 - `RUN/1_analysts/market.md`, `sentiment.md`, `news.md` and `fundamentals.md`
 - every earlier turn in `RUN/4_risk/`, in order. This is the conversation history; answer the latest conservative and neutral turns.
 
+Read these files in one parallel batch of `view` calls with `forceReadLargeFiles: true`: no line ranges and no second pass. If the orchestrator gives you an input bundle instead (one file that holds these files, each under a `=== FILE: <path> ===` header), read that one file the same way.
+
 If neither the conservative nor the neutral analyst has spoken yet, present your own argument from the data. Do not invent their positions.
 
 ## Cover

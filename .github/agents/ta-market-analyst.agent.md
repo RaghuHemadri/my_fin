@@ -54,6 +54,12 @@ End with a Markdown table of key points: indicator or level, value, as-of date, 
 ## Output
 Write the report to the output path the orchestrator gives you (normally `RUN/1_analysts/market.md`). Then reply with at most 8 lines: the path, your headline view and any data gaps. Do not paste the full report into your reply.
 
+## Working efficiently
+- Make independent tool calls together, in one parallel batch, rather than one per turn.
+- If MCP tools have to be found with a tool search first, search once for every tool you plan to use.
+- If a tool result is saved to a file because it is large, read that file once with `forceReadLargeFiles: true`. Do not probe it with line ranges or grep.
+- `.github/copilot-instructions.md` is already in your context. Do not read it again.
+
 ## Rules
 - Your only external data sources are the MCP servers listed in `.github/copilot-instructions.md` (`technicals`, `yahoo-finance`, `tradingmcp`). Do not search the web, call other APIs or run code that fetches data. The only command you may run is the local `indicators.py` script above.
 - Use read-only tools only.

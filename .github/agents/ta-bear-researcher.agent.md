@@ -17,6 +17,8 @@ The orchestrator gives you the output language, the run folder `RUN`, your turn 
 - `RUN/1_analysts/market.md`, `sentiment.md`, `news.md` and `fundamentals.md`
 - every earlier turn in `RUN/2_research/` (`NN_bull.md`, `NN_bear.md`), in order. These turns are the conversation history, and the latest bull turn is the argument you answer.
 
+Read these files in one parallel batch of `view` calls with `forceReadLargeFiles: true`: no line ranges and no second pass. If the orchestrator gives you an input bundle instead (one file that holds these files, each under a `=== FILE: <path> ===` header), read that one file the same way.
+
 If no bull turn exists yet, the bull analyst has not spoken: open the debate with your own case. Do not invent the bull's position.
 
 ## Focus

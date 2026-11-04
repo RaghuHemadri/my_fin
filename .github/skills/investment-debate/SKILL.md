@@ -210,6 +210,12 @@ State that the rating is a research conclusion, not an order.
   1. Read `.github/agents/<agent>.agent.md`.
   2. Read only that role's inputs, plus the MCP data servers for the analysts.
   3. Write the role's output file before starting the next role.
+- **Efficiency.** Every model turn costs several seconds before any output, so keep the orchestration lean:
+  - Launch the next role as soon as the previous one returns. Pass paths; do not read or summarize its output file first.
+  - Do not read the scripts' source code. Their commands and outputs are documented in this file.
+  - `.github/copilot-instructions.md` is already in your context. Do not read it again.
+  - Make independent calls together in one turn, for example the four analysts, or `prepare_run.py` and a settlement command.
+  - The role agents read their inputs in one batch with `forceReadLargeFiles: true`; they need nothing else from you.
 - **Scale.** A shallow run takes about 12 agent calls. For a whole portfolio, debate only the names that matter most, and list the names you skipped.
 
 ## Not reproduced from TradingAgents

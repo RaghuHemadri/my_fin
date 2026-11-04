@@ -42,6 +42,12 @@ Give specific, actionable insights with supporting evidence. End with a Markdown
 ## Output
 Write the report to the output path the orchestrator gives you (normally `RUN/1_analysts/news.md`). Then reply with at most 8 lines: the path, the most important events and the coverage gaps.
 
+## Working efficiently
+- Make independent tool calls together, in one parallel batch, rather than one per turn.
+- If MCP tools have to be found with a tool search first, search once for every tool you plan to use.
+- If a tool result is saved to a file because it is large, read that file once with `forceReadLargeFiles: true`. Do not probe it with line ranges or grep.
+- `.github/copilot-instructions.md` is already in your context. Do not read it again.
+
 ## Rules
 - Your only external data sources are the MCP servers listed in `.github/copilot-instructions.md` (`technicals`, `yahoo-finance`, `tradingmcp`, `tapetide`). Do not search the web, call other APIs or run code that fetches data.
 - Use read-only tools only. Never call the `tapetide` portfolio or watchlist write tools (`add_portfolio_stocks`, `update_portfolio_stock`, `remove_portfolio_stocks`, `add_to_watchlist`, `remove_from_watchlist`).
