@@ -213,6 +213,21 @@ A finished run already answers questions about its symbol and analysis date. Bef
 
 The memory log keeps the first decision recorded for a symbol and date, so a variant does not add another entry.
 
+## Headless runner
+
+`scripts/run_debate.py` runs this whole graph from code, outside the chat: setup and prefetch, settlement, the analysts in parallel, then every later role in order, then finalize. It makes one Copilot CLI call per role (`copilot -p ... --agent <role>`), so no model turns are spent on orchestration. Each role gets its input files as one bundle (`RUN/_inputs/<stage>.md`) built from exactly its input list. The runner resumes from the first missing stage and records stage timings in `RUN/run_log.json` and in the shared store (`python3 mcp/cache_admin.py runs`).
+
+```bash
+python3 .github/skills/investment-debate/scripts/run_debate.py NSE:TATAPOWER --holding-days 210 --mandate "<question>"
+python3 .github/skills/investment-debate/scripts/run_debate.py NASDAQ:MSFT NSE:TCS --parallel 2     # several instruments
+python3 .github/skills/investment-debate/scripts/run_debate.py --run reports/NSE_TCS/2026-11-04       # resume
+python3 .github/skills/investment-debate/scripts/run_debate.py NSE:TCS --dry-run                      # show the plan
+```
+
+- It takes the same settings as `prepare_run.py`, plus `--model` and `--effort` for every role without a tier setting. Without them, each role uses the CLI's default model and effort; pass the model you use in chat to keep the two paths alike.
+- It needs the Copilot CLI, logged in once (`copilot`, then `/login`). If the CLI is not logged in, it stops before any role runs and says so.
+- When the user asks for a run in chat, the chat workflow above is the default. Use the runner for scheduled runs (`tools/precompute.py`) or when the user asks for a headless run.
+
 ## Other commands
 
 - **Backtest:** `backtest tickers=<a,b> start=<date> end=<date> [every=7]`. Follow [backtest.md](./references/backtest.md).
