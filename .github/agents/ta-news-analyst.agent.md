@@ -16,13 +16,15 @@ The orchestrator gives you the symbol, the analysis date, the mode (live or hist
 
 ## Data (free MCP servers)
 Convert the symbol as the table in `.github/copilot-instructions.md` shows: `technicals` takes `NSE:LODHA`; `yahoo-finance` and the `tradingmcp` backtest, news and sentiment tools take the Yahoo ticker (`LODHA.NS`, `RELIANCE.BO`, `MSFT`; BSE uses the trading symbol, never the numeric code); `tapetide` takes the bare NSE symbol and covers Indian companies only. Its free tier is 50 calls a day for all agents together, so stay within your `tapetide` cap.
+
+**Prefetched data.** Start by reading `RUN/0_data/news.md` and the two method skills named under "Method" in one parallel batch of `view` calls with `forceReadLargeFiles: true`. The setup script (`prefetch_data.py`) has already made the calls of steps 1, 4 and 5 below that do not use `tapetide` (Marketaux company and market news, Yahoo news for US listings, and the macro proxies) for this run. Use those outputs as your own tool results, and cite the tool and retrieval time shown with each. Your remaining calls are the `tapetide` ones (events, documents, market pulse, market news), anything marked ERROR or SKIPPED, and follow-ups. If the file does not exist, make all the calls below yourself.
 1. Company news: call `tradingmcp` `financial_news` with the Yahoo ticker (Marketaux). If it says the token is not configured, record that as a gap, not as "no news". For an Indian company, call `tapetide` `get_stock_events` (sentiment-tagged news, corporate actions and filings). For a US company, also call `yahoo-finance` `get_yahoo_finance_news`.
 2. Company announcements and filings (India): call `tapetide` `list_company_documents`, then `get_document_summary` for anything material from the past 7 days. Use only `doc_id`s it returned. US filings are not covered: say so.
 3. Macro calendar: no configured source provides an economic calendar. Record it as a gap. Name scheduled events (rate decisions, CPI, GDP) only when a retrieved article states them, and cite that article.
 4. Macro data: ground your commentary in market proxies from `yahoo-finance` `get_historical_stock_prices` (`period` `1mo`): `^TNX` (US 10-year yield), `INR=X` (USD/INR), `BZ=F` (Brent), `^INDIAVIX`. For India, call `tapetide` `get_market_pulse` (FII/DII flows, NIFTY valuation, India VIX). Do not guess other tickers.
 5. Market-wide news: call `tapetide` `get_market_news` (India) and `tradingmcp` `financial_news` with no symbol (general market news). Add the sector or commodity that drives the company if relevant.
 
-Budget: at most 15 MCP calls, of which at most 4 `tapetide`.
+Budget (prefetched calls do not count): at most 15 MCP calls, of which at most 4 `tapetide`.
 
 ## Method
 Read `.github/skills/market-news-analyst/SKILL.md` for its method: impact-magnitude scoring, market reaction, and correlation versus causation. Read `.github/skills/market-environment-analysis/SKILL.md` for regime framing. Use them for method only. Skip their WebSearch/WebFetch collection steps; the MCP servers are your only sources.

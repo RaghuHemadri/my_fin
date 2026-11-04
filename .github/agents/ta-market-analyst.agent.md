@@ -16,6 +16,8 @@ The orchestrator gives you the symbol, the analysis date, the mode (live or hist
 
 ## Data (free MCP servers)
 Convert the symbol as the table in `.github/copilot-instructions.md` shows: `technicals` takes `NSE:LODHA`; `yahoo-finance` and the `tradingmcp` backtest, news and sentiment tools take the Yahoo ticker (`LODHA.NS`, `RELIANCE.BO`, `MSFT`; BSE uses the trading symbol, never the numeric code); `tapetide` takes the bare NSE symbol and covers Indian companies only. You do not use `tapetide`.
+
+**Prefetched data.** Start by reading `RUN/0_data/market.md`, `RUN/0_data/bars_1D.csv` and `RUN/0_data/bars_1W.csv` in one parallel batch of `view` calls with `forceReadLargeFiles: true`. The setup script (`prefetch_data.py`) has already made steps 1–4 below for this run, through the same MCP servers and with the arguments given here, and saved the daily and weekly bars exactly as returned to `RUN/1_analysts/bars_1D.json` and `bars_1W.json`. Use those outputs as your own tool results, and cite the tool and retrieval time shown with each. Call a tool yourself only for a step marked ERROR or SKIPPED, for the optional backtests, or to follow up on what the data shows. If `RUN/0_data/market.md` does not exist, make the calls below yourself.
 1. Verified snapshot: call `technicals` `price_statistics` (default `period` `2y`; set `horizon_days` to the holding period). It returns the last close and its date, returns over 5–250 days, realised volatility, ATR(14), RSI(14), MACD, SMA 20/50/200, Bollinger, the 52-week range, max drawdown, volume averages, beta and relative return versus the benchmark (`^NSEI` for NSE/BSE, `^GSPC` for US), and a volatility-implied move range. This snapshot is the source of truth for every exact price or indicator value. Cross-check the last price with `tradingmcp` `stock_prices` (`NSE:LODHA` form). If another tool disagrees, flag the difference; do not reconcile the numbers yourself.
 2. Price history: call `yahoo-finance` `get_historical_stock_prices` with `period` `2y` and `interval` `1d` (about 500 daily bars), plus `period` `5y` and `interval` `1wk` for long-term structure.
 3. Indicators: call `technicals` `technical_snapshot` with `interval` `1d`, and `1w` for context. It returns TradingView's public rating (no account needed): RSI, MACD, ADX, Stoch, CCI, momentum, AO, EMA/SMA 10–200, VWMA, Hull MA, Bollinger, monthly pivots, and the summary, moving-average and oscillator recommendations.
@@ -25,7 +27,7 @@ Optional: `tradingmcp` `backtest_strategy` or `compare_strategies` on the Yahoo 
 
 Historical mode: skip steps 1 and 3 and the backtest, which use data after the analysis date. The last bar on or before the analysis date is the verified snapshot, and step 4 provides the indicators.
 
-Budget: at most 15 MCP calls. When the budget is spent, write the report from what you have and name the data you could not retrieve.
+Budget (prefetched calls do not count): at most 15 MCP calls. When the budget is spent, write the report from what you have and name the data you could not retrieve.
 
 ## Indicator selection
 Select up to 8 indicators that give complementary, non-redundant information. Briefly explain why each suits the current market context.

@@ -90,6 +90,7 @@ python3 .github/skills/investment-debate/scripts/prepare_run.py --symbol <EXCHAN
 - Symbols outside NSE, BSE and the US exchanges need `--yahoo-ticker` (for example `GC=F` for `COMEX:GC1!`) and `--benchmark`.
 - Its JSON output gives `run` (this is `RUN`), `mode`, `resume_from` (the first missing stage), `pending_memory` and `data_gaps`. Continue from `resume_from`.
 - It keeps setup files that already exist, because they are the checkpoint. It also writes the placeholder file of every analyst that is not selected.
+- It then runs `prefetch_data.py`. That script makes the analysts' unconditional data calls once, in parallel, through the same MCP servers, and writes one file per analyst to `RUN/0_data/` (the `prefetch` part of the output lists them and any gaps). Each analyst reads its file instead of repeating those calls. `tapetide` calls and calls that need judgment stay with the analysts. Use `--no-prefetch` to skip it.
 - If the script fails, do items 1–7 by hand. They also describe what the script writes.
 
 1. **Instrument.** Resolve the request to `EXCHANGE:TICKER`: for an Indian name use `tapetide` `search_stocks`; for a US name, or if Tapetide is unavailable, try the likely Yahoo ticker. Then confirm the description, type, exchange, currency, sector and industry with `yahoo-finance` `get_stock_info` (Yahoo ticker such as `LODHA.NS`), and the live price with `tradingmcp` `stock_prices` (`NSE:LODHA`). Never guess: if neither confirms the symbol, ask the user. If the match is ambiguous, ask the user, or choose the primary listing and say so. Set `asset_type` from the symbol type.
@@ -119,7 +120,7 @@ python3 .github/skills/investment-debate/scripts/prepare_run.py --symbol <EXCHAN
 
 ## Step 1: Analyst team
 
-Delegate the selected analysts in parallel if the harness supports it. Pass each one the symbol, `as_of`, the mode, the language, `RUN` and its output path.
+Delegate the selected analysts in parallel if the harness supports it. Pass each one the symbol, `as_of`, the mode, the language, `RUN` and its output path. Each analyst starts from its prefetched data file, `RUN/0_data/<analyst>.md`, when it exists.
 
 | Agent | Output |
 | --- | --- |

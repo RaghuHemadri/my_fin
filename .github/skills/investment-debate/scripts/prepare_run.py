@@ -473,6 +473,7 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--holdings", default=str(ROOT / "portfolio" / "holdings.csv"))
     p.add_argument("--cash", default=str(ROOT / "portfolio" / "cash.csv"))
     p.add_argument("--no-html", action="store_true")
+    p.add_argument("--no-prefetch", action="store_true", help="skip prefetch_data.py (the analysts fetch their own data)")
     return p
 
 
@@ -481,11 +482,19 @@ def main(argv: list[str] | None = None) -> int:
     if args.mandate_file:
         args.mandate = args.mandate_file.read_text(encoding="utf-8")
     try:
-        print(json.dumps(prepare(args), indent=1, ensure_ascii=False))
-        return 0
+        summary = prepare(args)
     except (ValueError, LookupError) as exc:
         print(json.dumps({"error": str(exc)}, indent=1), file=sys.stdout)
         return 2
+    if not args.no_prefetch:
+        import prefetch_data  # noqa: PLC0415
+        try:
+            summary["prefetch"] = prefetch_data.prefetch(ROOT / summary["run"] if not Path(summary["run"]).is_absolute()
+                                                         else Path(summary["run"]), today=args.today)
+        except Exception as exc:  # the agents can still fetch their own data
+            summary["prefetch"] = {"error": str(exc)}
+    print(json.dumps(summary, indent=1, ensure_ascii=False))
+    return 0
 
 
 if __name__ == "__main__":
