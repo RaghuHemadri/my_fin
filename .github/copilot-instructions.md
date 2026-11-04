@@ -106,6 +106,8 @@ All 100 skills from Claude Trading Skills and Finance Skills are installed in `.
 
 For steps 5–7 on a single instrument, use the `investment-debate` skill (the TradingAgents workflow). A shallow run costs about 12 agent calls per instrument. For a whole-portfolio request, run it only for the few holdings or opportunities that matter most, and list the names that were not debated. The skill also handles historical as-of runs, backtests (`investment-debate backtest ...`) and the decision track record.
 
+Before starting a debate, look for today's run of that instrument and follow the skill's "Follow-ups and reuse" rules. A question the report already answers needs no new run. A follow-up that only changes the position, the horizon, the question or the language reuses the stages it cannot change.
+
 Save portfolio-level reports as `reports/portfolio/<YYYY-MM-DD>-portfolio-review.md`. Per-instrument debates write to `reports/<EXCHANGE>_<TICKER>/<YYYY-MM-DD>/`, and other skills to `reports/<skill-name>/`.
 
 ## Investment rules

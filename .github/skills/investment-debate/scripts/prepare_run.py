@@ -310,17 +310,17 @@ def prepare(args: argparse.Namespace, fetcher_factory=None) -> dict:
     if as_of > today:
         raise ValueError(f"analysis date {as_of} is in the future")
     mode = "historical" if as_of < today else "live"
-    yahoo = args.yahoo_ticker or yahoo_ticker_for(symbol)
-    if not yahoo:
-        raise ValueError(f"no default Yahoo ticker for {symbol}; pass --yahoo-ticker (for example GC=F for COMEX:GC1!)")
-    benchmark = args.benchmark or memory_log.benchmark_for(symbol)
-    if not benchmark:
-        raise ValueError(f"no default benchmark for {symbol}; pass --benchmark with a Yahoo index ticker")
     reports = Path(args.reports_dir)
     run = Path(args.run_dir) if args.run_dir else resolve_run_dir(reports, symbol, as_of, args.fresh)
     existing = run_plan.load_settings(run)
-    if existing and not args.rewrite_setup:
+    if existing and not args.rewrite_setup:  # a resumed or variant run keeps its own settings
         symbol, as_of, mode = existing["symbol"], existing["as_of"], existing["mode"]
+    yahoo = (existing.get("yahoo_ticker") if existing else None) or args.yahoo_ticker or yahoo_ticker_for(symbol)
+    if not yahoo:
+        raise ValueError(f"no default Yahoo ticker for {symbol}; pass --yahoo-ticker (for example GC=F for COMEX:GC1!)")
+    benchmark = (existing.get("benchmark") if existing else None) or args.benchmark or memory_log.benchmark_for(symbol)
+    if not benchmark:
+        raise ValueError(f"no default benchmark for {symbol}; pass --benchmark with a Yahoo index ticker")
 
     holdings = read_holdings(Path(args.holdings))
     stated = False

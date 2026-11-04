@@ -196,6 +196,22 @@ It processes local files only. Then reply to the user with:
 
 State that the rating is a research conclusion, not an order.
 
+## Follow-ups and reuse
+
+A finished run already answers questions about its symbol and analysis date. Before you start a new run:
+
+1. **Same-day run.** If `reports/<SAFE_SYMBOL>/<today>/complete_report.md` exists (or one in a later `-N` or `-vN` folder of today), answer from it and cite it. Start a new run only if the user asks for one (`fresh=true`) or the question needs one of the changes below.
+2. **The question changes the portfolio context**, for example "I hold 20 shares at USD 45" or new cash. The analysts and the bull/bear researchers never see holdings, so their files stay valid:
+   ```bash
+   python3 .github/skills/investment-debate/scripts/variant_run.py --from RUN --change position --position 20@45 --mandate "<the follow-up question>"
+   ```
+   It creates `RUN-v2`, copies the analyst reports and the research debate, refreshes `0_portfolio.md` and `0_past_context.md`, and returns `resume_from` (the trader). Continue the graph from there: about 5 agent calls instead of 12.
+3. **The holding period changes:** `--change horizon --holding-days N`. The sentiment, news and fundamentals reports are reused. The market analyst (its volatility range uses the horizon) and every later stage run again.
+4. **The question's emphasis or the output language changes:** `--change question --mandate "..."` or `--change language --language <language>`. Only the prefetched data is reused.
+5. **The latest run is from an earlier day.** Say so and offer a fresh run. Reuse it with `--allow-older` only if the user agrees; the variant keeps the earlier analysis date.
+
+The memory log keeps the first decision recorded for a symbol and date, so a variant does not add another entry.
+
 ## Other commands
 
 - **Backtest:** `backtest tickers=<a,b> start=<date> end=<date> [every=7]`. Follow [backtest.md](./references/backtest.md).
