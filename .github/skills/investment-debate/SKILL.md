@@ -89,7 +89,7 @@ python3 .github/skills/investment-debate/scripts/prepare_run.py --symbol <EXCHAN
 - Pass the user's question, horizon and emphasis as `--mandate`. Every role reads it in `0_instrument.md`.
 - `--position` records a position the user states in chat (for example `20@45`) that is not in `holdings.csv`.
 - Symbols outside NSE, BSE and the US exchanges need `--yahoo-ticker` (for example `GC=F` for `COMEX:GC1!`) and `--benchmark`.
-- Its JSON output gives `run` (this is `RUN`), `mode`, `resume_from` (the first missing stage), `pending_memory` and `data_gaps`. Continue from `resume_from`.
+- Its JSON output gives `run` (this is `RUN`), `mode`, `resume_from` (the first missing stage), `pending_memory` and `data_gaps`. Continue from `resume_from`. The output is the check: do not list or open the files it wrote.
 - It keeps setup files that already exist, because they are the checkpoint. It also writes the placeholder file of every analyst that is not selected, and creates the stage folders, because the role agents can write files but cannot create folders.
 - It then runs `prefetch_data.py`. That script makes the analysts' unconditional data calls once, in parallel, through the same MCP servers, and writes one file per analyst to `RUN/0_data/` (the `prefetch` part of the output lists them and any gaps). Each analyst reads its file instead of repeating those calls. `tapetide` calls and calls that need judgment stay with the analysts. Use `--no-prefetch` to skip it.
 - If the script fails, do items 1–7 by hand. They also describe what the script writes.
