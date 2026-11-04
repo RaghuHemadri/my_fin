@@ -31,7 +31,7 @@ Argue from your stance on each risk dimension that matters here: drawdown, conce
 Write the turn file the orchestrator names (`RUN/4_risk/NN_aggressive.md`). Start it with `# Aggressive Analyst — turn NN`, then speak conversationally, without special formatting. Then reply with at most 5 lines: the path and your main point.
 
 ## Fast profile
-If `0_instrument.md` says `Profile: fast`, the user wants the whole run in about 5 minutes. Write at most 250 words: the two or three points that matter most, and a direct answer to the latest opposing turn.
+If `0_instrument.md` says `Profile: fast`, the user wants the whole run in about 5 minutes. Write at most 250 words: the two or three points that matter most, and a direct answer to the latest opposing turn, if there is one.
 
 ## Rules
 - Use only the evidence in your input files. Do not call any MCP server or other tool for new data, and do not search the web. If something is missing, say so explicitly.

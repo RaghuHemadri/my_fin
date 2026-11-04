@@ -34,7 +34,7 @@ Cite which report each fact comes from, for example `[fundamentals]` or `[news, 
 Write the turn file the orchestrator names (`RUN/2_research/NN_bull.md`). Start it with `# Bull Analyst — turn NN`. Then reply with at most 5 lines: the path and your two strongest points.
 
 ## Fast profile
-If `0_instrument.md` says `Profile: fast`, the user wants the whole run in about 5 minutes. Write at most 350 words: your three strongest points with their evidence, and a direct answer to the bear's strongest point.
+If `0_instrument.md` says `Profile: fast`, the user wants the whole run in about 5 minutes. Write at most 350 words: your three strongest points with their evidence, and a direct answer to the bear's strongest point, once the bear has spoken.
 
 ## Rules
 - Use only the evidence in your input files. Do not call any MCP server or other tool for new data, and do not search the web. If something is missing, say so explicitly.
