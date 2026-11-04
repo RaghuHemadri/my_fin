@@ -484,24 +484,44 @@ def parser() -> argparse.ArgumentParser:
     return p
 
 
+class LentServers:
+    """Lends servers that are already running to prepare() and prefetch_data.prefetch() without closing them."""
+
+    def __init__(self, servers):
+        self.servers = servers
+
+    def __enter__(self):
+        return self.servers
+
+    def __exit__(self, *exc):
+        return None
+
+
 def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
     if args.mandate_file:
         args.mandate = args.mandate_file.read_text(encoding="utf-8")
-    try:
-        summary = prepare(args)
-    except (ValueError, LookupError) as exc:
-        print(json.dumps({"error": str(exc)}, indent=1), file=sys.stdout)
-        return 2
-    if not args.no_prefetch:
-        import prefetch_data  # noqa: PLC0415
+    from stdio_client import LocalServers  # noqa: PLC0415
+    # The setup and the prefetch share one set of servers, so each server starts once per run, not twice.
+    names = ["yahoo-finance", "tradingmcp"] + ([] if args.no_prefetch else ["technicals"])
+    with LocalServers(names) as servers:
+        lent = LentServers(servers)
         try:
-            summary["prefetch"] = prefetch_data.prefetch(ROOT / summary["run"] if not Path(summary["run"]).is_absolute()
-                                                         else Path(summary["run"]), today=args.today)
-        except Exception as exc:  # the agents can still fetch their own data
-            summary["prefetch"] = {"error": str(exc)}
+            summary = prepare(args, fetcher_factory=lambda: lent)
+        except (ValueError, LookupError) as exc:
+            print(json.dumps({"error": str(exc)}, indent=1), file=sys.stdout)
+            return 2
+        if not args.no_prefetch:
+            import prefetch_data  # noqa: PLC0415
+            try:
+                summary["prefetch"] = prefetch_data.prefetch(
+                    ROOT / summary["run"] if not Path(summary["run"]).is_absolute() else Path(summary["run"]),
+                    today=args.today, servers_factory=lambda _names: lent)
+            except Exception as exc:  # the agents can still fetch their own data
+                summary["prefetch"] = {"error": str(exc)}
     print(json.dumps(summary, indent=1, ensure_ascii=False))
     return 0
+
 
 if __name__ == "__main__":
     sys.exit(main())

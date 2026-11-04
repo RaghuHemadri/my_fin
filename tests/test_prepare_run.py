@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import io
 import json
 import os
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
 from unittest import mock
 
@@ -156,6 +158,39 @@ class PrepareRunTest(unittest.TestCase):
         self.assertEqual((settings["profile"], settings["quick_effort"], settings["deep_effort"]),
                          ("full", "session effort", "session effort"))
         self.assertNotIn("Profile:", (run / "0_instrument.md").read_text())
+
+    def test_main_starts_the_servers_once(self):
+        import prefetch_data
+        import stdio_client
+        entered, seen = [], {}
+
+        class FakeServers:
+            def __init__(self, names):
+                self.names = names
+
+            def __enter__(self):
+                entered.append(sorted(self.names))
+                return self
+
+            def __exit__(self, *exc):
+                return None
+
+        def fake_prepare(args, fetcher_factory=None):
+            with fetcher_factory() as servers:
+                seen["prepare"] = servers
+            return {"run": str(self.dir / "run")}
+
+        def fake_prefetch(run, today=None, servers_factory=None):
+            with servers_factory(["technicals", "yahoo-finance"]) as servers:
+                seen["prefetch"] = servers
+            return {"roles": []}
+
+        with mock.patch.object(stdio_client, "LocalServers", FakeServers), \
+                mock.patch.object(prepare_run, "prepare", fake_prepare), \
+                mock.patch.object(prefetch_data, "prefetch", fake_prefetch), redirect_stdout(io.StringIO()):
+            self.assertEqual(prepare_run.main(["--symbol", "NSE:TCS"]), 0)
+        self.assertEqual(entered, [["technicals", "tradingmcp", "yahoo-finance"]])
+        self.assertIs(seen["prepare"], seen["prefetch"])
 
     def test_futures_drop_fundamentals_and_position_override(self):
         out = self.prepare("--symbol", "COMEX:GC1!", "--yahoo-ticker", "GC=F", "--benchmark", "^GSPC",
