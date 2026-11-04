@@ -33,6 +33,16 @@ The tag fields are: decision date, symbol, rating, raw return, alpha versus the 
 
 ## Settle pending entries (Step 0 of every run)
 
+`scripts/settle_pending.py` automates steps 1–4 and 6 with data from the MCP servers. Only the reflection (step 5) is written by the model:
+
+```bash
+python3 .github/skills/investment-debate/scripts/settle_pending.py prepare --run RUN   # closes files, readiness, returns
+# write each ready entry's reflection to its reflection_file (step 5)
+python3 .github/skills/investment-debate/scripts/settle_pending.py apply --run RUN     # settle, refresh RUN/0_past_context.md
+```
+
+Each entry is settled with the holding period of its own run (`0_settings.json`), not of the current run. Without `--run`, the files go to `memory/settlements/`. For a backtest, add `--log B/decision-log.md --reports-dir B`. The steps it performs, and the way to do them by hand:
+
 1. **List pending entries.** Run `python3 .github/skills/investment-debate/scripts/memory_log.py pending`. It prints each pending entry with its default benchmark as a Yahoo ticker: `^GSPC` for US listings, `^NSEI` for NSE, `^BSESN` for BSE. The run's `benchmark` setting overrides it. For other exchanges, look up the home-market index's Yahoo ticker and confirm it with `yahoo-finance` `get_stock_info`.
 2. **Get prices.** Call `yahoo-finance` `get_historical_stock_prices` (`interval` `1d`) for the symbol's Yahoo ticker and the benchmark, with enough bars to cover the decision date plus `holding_days` sessions.
 3. **Write the closes file** `RUN/0_settle_<SAFE_SYMBOL>_<DATE>.csv` with the columns `date,close,bench_close`. Include one row per session after the decision date, and copy the closes exactly.

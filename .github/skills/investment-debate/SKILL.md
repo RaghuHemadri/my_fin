@@ -116,7 +116,12 @@ python3 .github/skills/investment-debate/scripts/prepare_run.py --symbol <EXCHAN
    - Cash for each currency in `cash.csv`, or `Cash: not provided`.
    - If there are no holdings, write only: "Portfolio context: not provided. Do not assume a flat book."
    - In historical mode, state that the holdings are today's book, used as a standing book.
-7. **Memory step.** Settle any pending decisions whose window has passed, as described in [memory-log.md](./references/memory-log.md). Then write `RUN/0_past_context.md` with `memory_log.py context --as-of <as_of>`. Only the portfolio manager reads it.
+7. **Memory step.** Settle any pending decisions whose window has passed:
+   1. Run `python3 .github/skills/investment-debate/scripts/settle_pending.py prepare --run RUN`. It reads each pending entry's own holding period and benchmark, and needs no data for windows that cannot have passed yet. For the rest, it writes the closes file from `get_historical_stock_prices` and reports `ready` entries with their raw return and alpha.
+   2. For each `ready` entry, write the reflection to its `reflection_file`, with the prompt in [memory-log.md](./references/memory-log.md).
+   3. Run `settle_pending.py apply --run RUN`. It settles those entries and refreshes `RUN/0_past_context.md`.
+
+   If nothing is `ready`, skip steps 2 and 3. `prepare_run.py` already wrote `RUN/0_past_context.md` with `memory_log.py context --as-of <as_of>`. Only the portfolio manager reads it. To do the memory step by hand, follow memory-log.md.
 
 ## Step 1: Analyst team
 
