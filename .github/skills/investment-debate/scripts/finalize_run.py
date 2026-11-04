@@ -125,6 +125,8 @@ def settings_lines(settings: dict) -> list[str]:
         f"- Debate rounds: research {s('debate_rounds', '?')}, risk {s('risk_rounds', '?')}"
         + (f" (depth {s('depth')})" if s("depth") else ""),
         f"- Models: quick {s('quick_model', 'session default')}, deep {s('deep_model', 'session default')}",
+        *([f"- Reasoning effort: quick {s('quick_effort', 'session default')}, deep {s('deep_effort', 'session default')}"]
+          if s("quick_effort") or s("deep_effort") else []),
         f"- Output language: {s('language', 'English')}",
         f"- Outcome window: {s('holding_days', '?')} trading days vs {s('benchmark', '?')}",
         f"- Data source: {s('data_source', 'free MCP servers')}",

@@ -60,6 +60,7 @@ The user can set any of these in the request, for example `NSE:TCS depth=medium 
 | `date` | today | `trade_date`. A date earlier than today makes the run historical (see below). |
 | `asset_type` | from `quoteType` in `yahoo-finance` `get_stock_info`: stock, fund/ETF, index, crypto, forex, futures | `asset_type` (stock or crypto) |
 | `quick_model`, `deep_model` | the session model | `quick_think_llm` and `deep_think_llm` (see "Delegation") |
+| `quick_effort`, `deep_effort` | the session's reasoning effort | none; Copilot's reasoning effort for the quick roles and for the two judges (see "Delegation") |
 | `holding_days` | 20 trading days | `holding_period_days` (5 there; 20 suits an investing horizon) |
 | `benchmark` | Yahoo tickers: US listings `^GSPC`, NSE `^NSEI` (NIFTY 50), BSE `^BSESN` (SENSEX), otherwise the home index | `benchmark_ticker`, `benchmark_map` |
 | `html` | true | HTML report |
@@ -101,7 +102,7 @@ python3 .github/skills/investment-debate/scripts/prepare_run.py --symbol <EXCHAN
 4. **`RUN/0_settings.json`.** Write all the settings above as JSON with these keys:
    - `symbol`, `run_date` (today), `mode` (live or historical), `as_of`, `asset_type`
    - `analysts` (a list), `depth`, `debate_rounds`, `risk_rounds`, `language`
-   - `quick_model`, `deep_model`, `holding_days`, `benchmark`
+   - `quick_model`, `deep_model`, `quick_effort`, `deep_effort`, `holding_days`, `benchmark`
    - `memory_log`, `memory_note`, `data_source` (`"free MCP servers (technicals, Yahoo Finance, TradingMCP, Tapetide)"`)
 5. **`RUN/0_instrument.md`**, read by every agent. Write these lines:
    - `Symbol`, `Company`, `Type`, `Asset type`, `Exchange`, `Currency`, `Sector / Industry`
@@ -223,6 +224,7 @@ The memory log keeps the first decision recorded for a symbol and date, so a var
 - **Tool.** Run each role as a subagent with its custom agent. In Copilot CLI and the VS Code Copilot harness, delegate with the task tool. In the VS Code Local harness, use `runSubagent`.
 - **What to pass.** Pass the symbol, `as_of`, the mode, the language, `RUN`, the exact input file paths, the output file path and, for debate turns, `NN`. Pass paths, not report contents. Never edit an agent's output file.
 - **Models.** TradingAgents runs the two judges (`ta-research-manager`, `ta-portfolio-manager`) on a deep-thinking model and the other roles on a quick one. If `deep_model` or `quick_model` is set and the delegation tool accepts a model, pass it. Otherwise every role uses the session model; record that in `0_settings.json`.
+- **Reasoning effort.** `quick_effort` and `deep_effort` work the same way: if one is set and the delegation tool accepts a reasoning effort (`low`, `medium`, `high`, `xhigh`, `max`), pass it to the quick roles or to the two judges. Both are unset by default, so every role keeps the session's model and effort and the analysis is unchanged. Most of each role's time is spent generating its report, so a lower effort for the ten quick roles is the largest remaining speed lever. It can also make their arguments shallower, so compare runs on the same symbol and date before relying on it.
 - **Isolation**, as in TradingAgents:
   - Analysts see only the instrument.
   - The bull and bear researchers and the research manager never see holdings.
