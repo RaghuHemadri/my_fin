@@ -74,6 +74,24 @@ A medium or deep run costs much more: each extra round adds 2 debate calls and 3
 
 ## Step 0: Set up the run
 
+Run the setup script. It does items 1–7 below in one step, in a few seconds instead of several model turns, with data from the configured MCP servers (through the shared cache):
+
+```bash
+python3 .github/skills/investment-debate/scripts/prepare_run.py --symbol <EXCHANGE:TICKER> \
+  [--holding-days N] [--depth shallow|medium|deep] [--analysts market,sentiment,news,fundamentals] \
+  [--language <language>] [--as-of YYYY-MM-DD] [--mandate "<the user's question, horizon and emphasis>"] \
+  [--position QTY@AVG_COST] [--benchmark <Yahoo index>] [--yahoo-ticker <ticker>] [--tapetide-symbol <symbol>] \
+  [--quick-model <model>] [--deep-model <model>] [--fresh]
+```
+
+- Resolve the symbol first (item 1). The script confirms it with `get_stock_info` and `stock_prices`. If it cannot, it exits with code 2 and an `error`; then ask the user.
+- Pass the user's question, horizon and emphasis as `--mandate`. Every role reads it in `0_instrument.md`.
+- `--position` records a position the user states in chat (for example `20@45`) that is not in `holdings.csv`.
+- Symbols outside NSE, BSE and the US exchanges need `--yahoo-ticker` (for example `GC=F` for `COMEX:GC1!`) and `--benchmark`.
+- Its JSON output gives `run` (this is `RUN`), `mode`, `resume_from` (the first missing stage), `pending_memory` and `data_gaps`. Continue from `resume_from`.
+- It keeps setup files that already exist, because they are the checkpoint. It also writes the placeholder file of every analyst that is not selected.
+- If the script fails, do items 1–7 by hand. They also describe what the script writes.
+
 1. **Instrument.** Resolve the request to `EXCHANGE:TICKER`: for an Indian name use `tapetide` `search_stocks`; for a US name, or if Tapetide is unavailable, try the likely Yahoo ticker. Then confirm the description, type, exchange, currency, sector and industry with `yahoo-finance` `get_stock_info` (Yahoo ticker such as `LODHA.NS`), and the live price with `tradingmcp` `stock_prices` (`NSE:LODHA`). Never guess: if neither confirms the symbol, ask the user. If the match is ambiguous, ask the user, or choose the primary listing and say so. Set `asset_type` from the symbol type.
 2. **Mode.** Set `as_of` to the `date` setting, or today. If `as_of` is before today, the mode is `historical`, and every role follows [point-in-time.md](./references/point-in-time.md). A date in the future is an error.
 3. **Run folder.** Set `SAFE_SYMBOL` to the symbol with `:` replaced by `_`, and `RUN` to `reports/<SAFE_SYMBOL>/<as_of>`. The stage files are the checkpoint:
